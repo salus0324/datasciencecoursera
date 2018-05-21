@@ -1,4 +1,5 @@
-#Coursera Getting and Cleaning data Course Project
+#Coursera Getting and Cleaning data Course Project  
+
 The script "run_analysis.R" uses data files from UCI HAR Dataset to create a tidy data file, "tidydata.txt. Below is the list of functionality of the script "run_analysis.R"
 
 1. It merges the training and the test sets to create one data set.  
