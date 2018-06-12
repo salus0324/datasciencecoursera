@@ -1,0 +1,41 @@
+---
+title: "Impact of weather events on public health and economy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+## Loading and Processing the Raw Data
+```{r cars, cache=TRUE}
+# Read the raw data
+raw <- read.csv("./repdata%2Fdata%2FStormData.csv.bz2", stringsAsFactors = F)
+# Assign helath related data to health data frame
+fatalities <- raw[, c("EVTYPE", "FATALITIES")]
+meanFatalities <- with(fatalities, aggregate(FATALITIES, list(Event = EVTYPE), mean, na.rm=T))
+names(meanFatalities) <- c("Event", "Fatalities")
+topmeanFatalities <- meanFatalities[order(meanFatalities$Fatalities, decreasing=T)[1:10],]
+
+
+injuries <- raw[, c("EVTYPE", "INJURIES")]
+meanInjuries <- with(injuries, aggregate(INJURIES, list(event = EVTYPE), mean, na.rm=T))
+names(meanInjuries) <- c("Event", "Injuries")
+topmeanInjuries <- meanInjuries[order(meanInjuries$Injuries, decreasing=T)[1:10],]
+
+# Get top 10 of most impactful event
+# Assign economy related data to economy data frame
+prop <- raw[, c("EVTYPE","PROPDMG","PROPDMGEXP")]
+
+
+
+
+crop <- raw[, c("EVTYPE", "CROPDMG","CROPDMGEXP")]
+
+```
+
+## Result
+
+
