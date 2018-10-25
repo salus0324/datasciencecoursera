@@ -1,0 +1,87 @@
+---
+title: "Distributions"
+output: html_document
+header-includes:
+- \doublespacing
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Bernoulli distributions
+The Bernoulli distribution arises as the result of a binary outcome. Bernoulli random variables take only the values 1 and 0 with probabilities of $p$ and $1-p$ respectively.  
+**pmf**: $P(X=x)=p^x(1-p)^{1-x}$  
+**mean**: $p$  
+**variance**: $p(1-p)$  
+  
+###Binomial distributions
+Let $X_1,..,X_n$ be iid Bernoulli(p), then $X=\sum_{i=1}{n}X_i$ is a binomial random variable.  
+**pmf**: $P(X=x)= nCx* p^x(1-p)^{n-x}$  
+**example**: Suppose a friend has 8 children, 7 of which are girls. If each gender has an independent 50% probability for each birth, what's the probability of getting 7 or more girls out of 8 births?  
+=> $8C7*0.5^7(1-0.5)^1+8C8*0.5^8(1-0.5)^0 = 0.04$
+```{r}
+pbinom(6, size=8, prob=0.5, lower.tail=FALSE)
+```
+****
+  
+###Normal distribution
+Gaussian distribution with mean $\mu$ and variance $\sigma^2$. $E[x]=\mu$ and $Var(X)=\sigma^2$, $X \sim N(\mu, \sigma^2)$. When $\mu=0$ and $\sigma=1$, the resulting distribution is standard normal distribution.  
+**Facts about the normal density**  
+* If $X \sim N(\mu, \sigma^2)$ then
+\[Z=\frac{X-\mu}{\sigma} \sim N(0,1)\]  
+* If Z is standard normal
+\[X=\mu+\sigma Z \sim N(\mu, \sigma^2)\]
+**Example1**: What is the 95th percentile of a $N(\mu, \sigma^2)$ distributions?
+```{r}
+mu=0
+sd=1
+qnorm(0.95, mu, sd)
+```
+**Example2**: Assume that the number of daily ad clicks for a company is (approximately) normally distributed with a mean of 1020 and a standard deviation of 50. What's the probability of getting more than 1,160 clicks in a day?
+```{r}
+mu=1020
+sd=50
+pnorm(1160, mu, sd, lower.tail=FALSE)
+```
+**Example3**: Assume that the number of daily ad clicks for a company is (approximately) normally distributed with a mean of 1020 and a standard deviation of 50. What number of daily ad clicks would represent the one where 75% of days have fewer clicks (assuming days are independent and identically distributed?)
+```{r}
+mu=1020
+sd=50
+qnorm(0.75, mu, sd)
+```
+  
+###Poisson distribution
+**Usage**  
+1. Modeling count data  
+2. Modeling event-time or survival data
+3. Modeling contingency tables
+4. Approximating binomials when n is large and p is small
+
+**pmf**: $P(X=x;\lambda)=\frac{\lambda^x e^{-\lambda}}{x!}$  
+**mean**: $\lambda$  
+**variance**: $\lambda$  
+
+**Rates and Poisson random variables**  
+$X \sim Poisson(\lambda t)$ where
+
+* $\lambda = E[X/t]$ is the expected count per unit of time
+* $t$ is the total monitoring time  
+*Example: The number of people that show up at a bus stop is Poisson with a mean of 2.5 per hour. If watching the bus stop for 4 hours, what is the probability that 3 or fewer people show up for the whole time?
+```{r}
+ppois(3, lambda=2.5*4)
+```
+  
+**Poisson approximation to the binomial**  
+
+* When n is large and p is small the poisson distribution is an accurate approximation to the binomial distribution
+* Notation
+- $X \sim Binomial(n,p)$
+- $\lambda = np$
+- n gets large
+- p gets small
+* Example: We flip a coin with success probability 0.01 five hundred times. What's the probability of 2 or fewer successes?
+```{r}
+pbinom(2, 500, 0.01)
+ppois(2, lambda=500*0.01)
+```

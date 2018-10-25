@@ -1,0 +1,111 @@
+---
+title: "Resampling"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(UsingR)
+```
+
+## Bootstrap
+Let's say we want to investigate the average of 50 die unfair die rolls.
+
+* One way is to roll the die 50 times, get an average, and repeat that process for multiple times. 
+* What if we only had one sample of 50 die rolls?
+* Bootstrap says to take samples from that one sample with replacement. 
+* It is useful when you have a statistic that estimates some population parameter, but you don't have its sampling distribution. 
+* It suggests using the distribution defined by the observed data to approximtes its sampling distribution.
+  
+###Bootstrap example
+```{r}
+#Consider a data set
+data(father.son)
+x<- father.son$sheight
+n<-length(x)
+B<-1000
+#Every row of the resamples matrix is one bootstrapped sample
+resamples <- matrix(sample(x, n*B, replace=TRUE), B, n)
+resampledMedians <- apply(resamples, 1, median)
+#Histogram of the resamples
+g = ggplot(data.frame(x = resampledMedians), aes(x = x)) 
+g = g + geom_density(size = 2, fill = "red")
+g = g + geom_vline(xintercept = median(x), size = 2)
+g
+```
+  
+This boostrap samples creates estimation of the actual population distribution based on the single observed data sample. If we take the standard deviation of this distribution, that will be the estimate of the standard error of the median. 
+  
+
+###The boostrap in practice
+
+1. First, simulate complete datasets from the observed data with replacement. This is approximately drawing from the sampling distribution of the statistic in interest.
+2. Calculate the statistic for each simulated datat set.
+3. Use the simulated statistics to either define a confidence interval or take the standard deviation to calculate a standard error.  
+**Example**: Bootstrap procedure for calculating confidence interval for the median from a data set of n observations.  
+
+i. Sample n observations with replacement from the observed data resulting in one simulated complete data set.
+ii. Take the median of the simulated data set.
+iii. Repeat these two steps B times, resulting in B simulated medians.
+iv. These medians are approximately drawn from the sampling distribution of the median of n observations; therefore we can
+    +  Draw a histogram of them.
+    + Calculate their standard deviation to estimate the standard error of the median.
+    + Take the 2.5th and 97.5th percentiles as a confidence interval for the median.
+
+```{r}
+B <- 10000
+resamples <- matrix(sample(x, n*B, replace=TRUE), B, n)
+medians <- apply(resamples, 1, median)
+# Estimate for standard error of the median
+sd(medians)
+# Estimate for CI for the median
+quantile(medians, c(0.025, 0.975))
+#Histogram of boostrap resamples
+g <- ggplot(data.frame(medians=medians), aes(x=medians))
+  g <- g+geom_histogram(color="black", fill="lightblue", binwidth=0.05)
+g
+```
+  
+This histogram shows the estimate of sample distribution of median.
+
+###Permutation tests
+```{r, fig.height=6, fig.width=8, echo=FALSE, fig.align='center'}
+# Example, comparing sprays B and C
+data(InsectSprays)
+g = ggplot(InsectSprays, aes(spray, count, fill = spray))
+g = g + geom_boxplot()
+g
+```
+Permutation tests are used for group comparisons. This can work as an alterative from T-test. T-test has assumptions of random sampling and random assignment. Permutation tests doesn't need these assumptions. However, it's very computationally demanding.  
+
+1. Consider the null hypothesis that the distribution of the observations from each group is the same.
+2. Then, the group labels are irrelevant.
+3. Consider a data frame with count and spray.
+4. Permute the spray labels
+5. Recalculate the statistic
+6. Calculate the percentage of simulations where the simulated statistic was more extreme (toward the alternative) than the observed. This will yield a permutation based p-value.
+  
+**Rank sum test**
+**Fisher's exact test**
+**Ordinary permutation test**  
+```{r}
+subdata <- InsectSprays[InsectSprays$spray %in% c("B", "C"),]
+y <- subdata$count
+group <- as.character(subdata$spray)
+testStat <- function(w, g) mean(w[g == "B"]) - mean(w[g == "C"])
+observedStat <- testStat(y, group)
+permutations <- sapply(1 : 10000, function(i) testStat(y, sample(group)))
+observedStat
+#Permutation based p-values
+mean(permutations > observedStat)
+```
+  
+The zero permutation based p-value means that we couldn't find a reconfiguration of the group labels that leaded to a more extreme value of the test statistic than our observed statistic.  
+  
+Below i the histogram of the distribution that got created by permutation test.The vertical line is the observed statistic which is far far away from the permutation test based distribution. In this case we can reject the null hypothesis that the distribution of the observations from each group is the same.
+```{r, echo= FALSE, fig.width=6, fig.height=6, fig.align='center'}
+g = ggplot(data.frame(permutations = permutations),
+           aes(permutations))
+g = g + geom_histogram(fill = "lightblue", color = "black", binwidth = 1)
+g = g + geom_vline(xintercept = observedStat, size = 2)
+g

@@ -1,0 +1,51 @@
+---
+title: "Conditional Probability"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Conditional probability
+\[P(A|B) = \frac{P(A \cap B)}{P(B)}\]  
+If A and B are mutually exclusive, $P(A|B) = \frac{P(A \cap B)}{P(B)}=\frac{P(A)P(B)}{P(B)}=P(A)$  
+
+###Bayes' rule:
+\[P(B|A) = \frac{P(A|B)P(B)}{P(A|B)P(B)+P(A|B^c)P(B^c)}\]  
+**Diagnostic tests**  
+Let + and - be the events that the result of a diagnostic test is positive or negative respectively.  
+Let $D$ and $D^c$ be the event that the subject of the test has or does not have the disease respectively.  
+
+* Sensitivity = $P(+|D)$
+* Specificty = $P(-|D^c)$
+* Positive predictive value = $P(D|+)$
+* Negative predictive value = $P(D^c|-)$
+* Prevalence of disease = $P(D)$  
+
+HIV Example: sensitivity of 99.7%, specificity of 98.5%, and population with a 0.1% prevalence of HIV. What is $P(D|+)$?
+
+\[P(D|+) = \frac{P(+|D)P(D)}{P(+|D)P(D)+P(+|D^c)P(D^c)}
+=\frac{P(+|D)P(D)}{P(+|D)P(D)+\{1-P(-|D^c)\}\{1-P(D)\}}
+=\frac{0.997*0.001}{0.997*0.001+0.015*0.999}=0.062 \]
+  
+**Likelihood ratios**: Odds of disease given a positive test result
+\[\frac{P(D|+)}{P(D^c|+)}=\frac{P(+|D)}{P(+|D^c)}*\frac{P(D)}{P(D^c)}\]
+(Odds of disease given a positive result) = (Diagnostic likelihood ratio for a positive test result) * (Odds of disease in the absence of a test result)  
+(Post-test odds of D) = (DLR+) * (Pre-test odds of D)  
+
+HIV Example:sensitivity of 99.7%, specificity of 98.5%, and population with a 0.1% prevalence of HIV.  
+$DLR_+ = 0.997/(1-0.985) = 66$  
+The hypothesis of disease is 66 times more supported by the data than the hypothesis of no disease given the positive test result.  
+$DLR_- = (1-0.997)/0.985 = 0.003$  
+The hypothesis of disease is supported 0.003 times that of the hypothesis of the absence of disease given the negative test result. 
+
+###Independence
+Event A is independent of event B if $P(A|B)=P(A)$ where $P(B)>0$. Also $P(A \cap B) = P(A)P(B)$.  
+**IID random variables**: Random variables are said to be iid if they are independent and identically distributed.
+
+* Independent: statistical unrelated from one and another
+* Identically distributed: all having been drawn from the same population distribution.
+* IID random variables are the default model for random samples.

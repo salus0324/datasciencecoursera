@@ -1,0 +1,134 @@
+---
+title: "Confidence Intervals"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE}
+library(UsingR)
+library(datasets)
+library(dplyr)
+library(reshape2)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##T Confidence intervals
+In the previous modules, we discussed creating a confidence interval using the CLT.  
+\[Z\_CI:Est \pm z_{score}*{SE}_{est}\]
+In this module, we will discuss the methods when we have small sample. In this case, we need to use student confidnece interval.  
+\[T\_CI:Est \pm t_{score}*{SE}_{est}\]
+T distribution has heavier tails than normal distribution, so t CI is wider than z CI. As n gets bigger t interval approximates to z interval.
+  
+###T distribution
+
+* T distribution has heavier tails than normal distribution.
+* Indexed by a degrees of freedom (df), and centered around zero.
+* Approximates to standard normal as df gets larger.
+* It assumes that the underlying data are iid Gaussian with the result that 
+\[\frac{\overline{X}-\mu}{S/\sqrt{n}}\] 
+follows Gosset's t distribution with n-1 degrees of freedom.
+* T CI is $\overline{X} \pm t_{n-1}*S/\sqrt{n}$ where $t_{n-1}$ is the relevant quantile.
+* Paired observations are often analyzed using the t interval by taking difference.
+* For skewed distributions, the spirit of the t interval assumptions are violated
+    + Also for skewed distributions, it doesn't make a lot of sense to center the interval at the mean
+    + In this case, consider taking logs or using a different summary like the median.
+* For highly discrete data, like binary, other intervals are available.
+
+###T confidence intervals example
+```{r}
+data(sleep)
+head(sleep)
+library(ggplot2)
+g <- ggplot(sleep, aes(x = group, y = extra, group = factor(ID)))
+g <- g + geom_line(size = 1, aes(colour = ID)) + geom_point(size =10, pch = 21, fill = "salmon", alpha = .5)
+g
+g1 <- sleep$extra[1:10]; g2 <- sleep$extra[11:20]
+difference <- g2-g1
+mn <- mean(difference); s <- sd(difference); n <- 10
+# t confidence interval with confidence level 95%
+t.test(difference)
+t.test(g2, g1, paired=T) 
+# outcome is extra, extra is function the group, and the group are paired
+t.test(extra ~ I(relevel(group,2)), paried=T, data=sleep)
+```
+  
+All 4 methods give same CI.
+  
+###Independent group T intervals
+
+* Suppose that we want to compare the meean blood pressure between two groups in a randomized trial; those who received the treatment to those who received a placebo.
+* We can't use the paried t test because the groups are independent and may have different sample sizes.
+**Confidence interval**  
+
+* Therefore a $(1 - \alpha)\times 100%$ confidence interval for $\mu_y - \mu_x$ is 
+$$ \bar Y - \bar X \pm t_{n_x + n_y - 2, 1 - \alpha/2}S_p\left(\frac{1}{n_x} + \frac{1}{n_y}\right)^{1/2} $$
+* The pooled variance estimator is 
+\[S_p^2 = \{(n_x - 1) S_x^2 + (n_y - 1) S_y^2\}/(n_x + n_y - 2)\]
+* Remember this interval is assuming a constant variance across the two groups.  
+**Example1**: Comparing SBP for 8 oral contraceptive users versus 21 controls.
+
+* $\overline{X}_{OC} = 132.86$ mmHg with $s_{OC}=15.34$ mmHg
+* $\overline{X}_{C} = 127.44$ mmHg with $s_{C}=18.23$ mmHg
+* Pooled variance estimate
+```{r}
+n_oc = 8
+x_oc = 132.86
+s_oc = 15.34
+n_c = 21
+x_c = 127.44
+s_c = 18.23
+sp <- sqrt(((n_oc-1)*s_oc^2+(n_c-1)*s_c^2)/(n_oc+n_c-2))
+(x_oc-x_c)+c(-1,1)*qt(0.975, n_c+n_oc-2)*sp*sqrt(1/n_c+1/n_oc)
+```
+  
+Since the interval includes zero, so we can't confidently say that oral contraception is effective.
+  
+**Example2**: Let's revisit the sleep data, but this time we mistakenly treated the sleep data as grouped.
+```{r}
+n1 <- length(g1)
+n2 <- length(g2)
+sp <- sqrt( ((n1-1)*sd(g1)^2 + (n2-1)*sd(g2)^2)/(n1+n2-2))
+md <- mean(g2)-mean(g1)
+semd <- sp*sqrt(1/n1+1/n2)
+rbind(
+  md+c(-1,1)*qt(0.975, n1+n2-2)*semd,
+  t.test(g2,g1, paired=FALSE, var.equal=TRUE)$conf,
+  t.test(g2, g1, paired=TRUE)$conf
+)
+```
+  
+This result makes sense because if you compare between two groups, the different is not significant because of high variability within each group. However, when you compare the data by individual, the effect is significant. 
+  
+**Example3**: ChickWeight data in R
+```{r}
+data(ChickWeight)
+##define weight gain or loss
+wideCW <- dcast(ChickWeight, Diet+Chick~Time, value.var="weight")
+names(wideCW)[-(1 : 2)] <- paste("time", names(wideCW)[-(1 : 2)], sep = "")
+wideCW <- mutate(wideCW,
+  gain = time21 - time0
+)
+#Plotting the raw data
+g <- ggplot(ChickWeight, aes(x = Time, y = weight, 
+                             colour = Diet, group = Chick))
+g <- g + geom_line()
+g <- g + stat_summary(aes(group = 1), geom = "line", fun.y = mean, size = 1, col = "black")
+g <- g + facet_grid(. ~ Diet)
+g
+#Let's compare 1st and 4th diet.
+wideCW14 <- subset(wideCW, Diet %in% c(1, 4))
+rbind(
+  t.test(gain~Diet, paired=F, var.equal=T, data=wideCW14)$conf,
+  t.test(gain~Diet, paired=F, var.equal=F, data=wideCW14)$conf
+)
+```
+  
+It suggests less weight gain on diet one than on diet four.  
+
+###Unequal variances
+When in doubt, just use unequal variances.  
+The formula for unequal variances is:  
+\[ \bar Y - \bar X \pm t_{df} \times \left(\frac{s_x^2}{n_x} + \frac{s_y^2}{n_y}\right)^{1/2} \] 
+where $t_{df}$ is calculated as 
+\[ df= \frac{\left(S_x^2 / n_x + S_y^2/n_y\right)^2} {\left(\frac{S_x^2}{n_x}\right)^2 / (n_x - 1) + \left(\frac{S_y^2}{n_y}\right)^2 / (n_y - 1)} \] 

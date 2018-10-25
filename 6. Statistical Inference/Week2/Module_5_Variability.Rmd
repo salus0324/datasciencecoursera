@@ -1,0 +1,35 @@
+---
+title: "Variability"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+library(UsingR)
+```
+
+##Variance
+The variance of a random variable is a measure of spread. The square root of the variance is standard deviation.
+\[Var(X) = E[(X-\mu)^2] = E[X^2]-E[X]^2\]
+**Sample variance**
+\[S^2 = \frac{\sum_{i-1}(X_i-\overline{X})^2}{n-1}\]
+The expected value of the sample variance is estimated of the population variance. This estimation gets better as n gets larger. Sample variance is also unbiased estimation of population variance.
+
+###Standard error
+We call the standard deviation of a statistic a standard error.
+\[Var(\overline{X}) = \sigma^2/n\]
+In this scenario, the standard deviation of the sample mean is standard error of the mean. Likewise standard error of a regression coefficient talks about the variabilities of the regression coefficient. Since sample variance is good estimator for population variance, a logical estimate of standard error of a mean is $s/\sqrt{n}$.  
+
+* $s/\sqrt{n}$, the standard error, talks about how variable averages of random samples of size n from the population are.
+
+###Example
+```{r}
+data(father.son)
+x <- father.son$sheight
+n <- length(x)
+#Estimate for population son's height. If we assume that x is the random sample from the population.
+#var(x) and sd(x) are estimates of variability of population
+#var(x)/n and sd(x)/sqrt(n) are estimates of the variability in averages of son's height.
+round(c(var(x), var(x)/n, sd(x), sd(x)/sqrt(n)),2)
+```

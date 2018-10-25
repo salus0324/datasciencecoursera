@@ -1,0 +1,29 @@
+---
+title: "Linear least squares"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Linear least squares
+
+
+###Background
+
+* **Empirical mean**: \[\overline{X} = \frac{1}{n}\sum_{i=1}^{n}X_i\]
+* **Empirical standard deviation**: \[S^2 = \frac{1}{n-1}\sum_{i=1}^{n}(X_i-\overline{X})^2\]
+* **Centering**: If we subtract the mean from data points, we get data that has mean 0. This is called centering.
+* **Scaling**: The data defined by $X_i/s$ have empirical standard deviation 1. This is called scaling.
+* **Normalization**: the data defined by \[Z_i = \frac{X_i-\overline{X}}{s}\] have empirical mean zero and empirical standard deviation 1. This process is called normalization. 
+    + Normalized data are centered at 0 and have units equal to stnadard deviations of the original data.
+* **Empirical covariance**: when we consider pairs of data, $(X_i, Y_i)$, the empirical covariance is \[Cov(X,Y)=\frac{1}{n-1}\sum_{i=1}^{n}(X_i-\overline{X})(Y_i-\overline{Y})=\frac{1}{n-1}(\sum_{i=1}^{n}X_iY_i-n\overline{X}\overline{Y})\]
+* **Correlation**: \[Cor(X,Y)=\frac{Cov(X,Y)}{S_x S_y}\] where $S_x$ and $S_y$ are the estimates of standard deviations for the X observations and Y observations, respectively.
+    + $Cor(X,Y)=Cor(Y,X)$
+    + $-1 <=Cor(X,Y)<= 1$
+    + $Cor(X,Y)=1$ and $Cor(X,Y)=-1$ only when X or Y observations fall perfectly on a positive or negative sloped line, respectively.
+    + $Cor(X,Y)$ measures the strength of the linear relationship betwen X and Y data, with stronger relationship as $Cor(X,Y)$ heads towards -1 or 1.
+    + $Cor(X,Y)=0$ implies no linear relationship.
+
+### Lin

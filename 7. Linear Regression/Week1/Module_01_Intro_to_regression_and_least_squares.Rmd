@@ -1,0 +1,61 @@
+---
+title: "Intro to regression and least squares"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(UsingR)
+library(reshape)
+library(dplyr)
+```
+
+## Galton's data - child and parents height
+```{r}
+data(galton)
+long <- melt(galton)
+g <- ggplot(long, aes(x=value, fill=variable))
+g <- g + geom_histogram(colour = "black", binwidth=1)
+g <- g + facet_grid(.~variable)
+g
+```
+  
+###Least squares - Children's height
+
+* Consider only the children's height.
+    + The middle is the value $\mu$ that minimizes \[\sum_{i=1}^{n} (Y_i-\mu)^2\]
+* This is al so physical center of mass of the histogram.
+* $\mu=\overline{Y}$
+```{r}
+g <- ggplot(galton, aes(x=child))
+g <- g + geom_histogram(fill="salmon", colour="black", binwidth=1)
+g <- g + geom_vline(xintercept = mean(galton$child), size=3)
+g
+```
+  
+###Exploration of Children and parents heights
+Scatterplot
+```{r}
+freqData <- as.data.frame(table(galton$child, galton$parent))
+names(freqData) <- c("child", "parent", "freq")
+freqData$child <- as.numeric(as.character(freqData$child))
+freqData$parent <- as.numeric(as.character(freqData$parent))
+g <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child))
+g <- g  + scale_size(range = c(2, 20), guide = "none" )
+g <- g + geom_point(colour="grey50", aes(size = freq+20, show_guide = FALSE))
+g <- g + geom_point(aes(colour=freq, size = freq))
+g <- g + scale_colour_gradient(low = "lightblue", high="white")                    
+g
+```
+  
+###Regression through the origin
+
+* Suppose that $X_i$ are the parents' heights
+* Consider picking the slope $\beta$ that minimizes \[\sum_{i=1}^{n}(Y_i-X_i\beta)^2\]
+* This is using the origin as a pivot point picking the line that minimizes the sum of the squared vertical distances of the points to the line.
+* Subtract the means so that the origin is the mean of the parents and children's heights
+```{r}
+# -1 is to get rid of the intercept
+lm(I(child-mean(child))~I(parent-mean(parent))-1, data=galton)
+```
+We subtracted the mean to center the data to origin. The slope $\beta$ is 0.6463.

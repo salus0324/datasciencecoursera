@@ -1,0 +1,99 @@
+---
+title: "Hypothesis Testing"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE}
+library(UsingR)
+library(datasets); data(ChickWeight); library(reshape2)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Hypothesis testing
+
+* Hypothesis testing is concerned with making decisions using data.
+* A null hypothesis is specified that represents the status quo, usually labeled $H_0$
+* The null hypothesis is assumed true and statistical evidence is required to reject it in favor of an alternative hypothesis.
+* The alternative hypotheses are typically of the form <, > or not !=.
+* Note that there are four possible outcomes of our statistical decision process.
+    1. Correctly accept null.
+    2. Falsely reject null hypothesis (Type I error).
+    3. Correctly reject null.
+    4. Falsely accept null (Type II error).
+* A reasonable strategy would reject the null hypothesis if $\overline{X}$ was larger than some constant C.
+* Typically, C is chosen so that the probability of a Type I error, $\alpha$ is 0.05.
+* $\alpha$ = Type I error rate = Probability of falsely rejecting the null hypothesis.
+  
+**Example**
+A respiratory disturbance index of more than 30 events/hour is considered evidence of severe sleep disordered breathing (SDB). Suppose that in a sample of 100 overweight subjects with other risk factors for SDB at a sleep clnic, the mean RDI was 32 events/hour with a standard deviation of 10 events/hour.  
+
+* We might want to test the hypothesis that
+    + $H_0 : \mu = 30$
+    + $H_a : \mu >30$
+    + where $\mu$ is the population mean RDI.
+* Standard error of the mean is $1/\sqrt{100}=1$
+* Under $H_0 \overline{X} \sim N(30, 1)$, we want to choose C so that the $P(\overline{X}>C; H_0)$ is 5%.
+* The 95th percentile of z-score is 1.645. So, C=30+1*1.645 = 31.645
+    + Then the probability that a N(30, 1) is larger than it is 5%
+    + So the rule "Reject $H_0$ when $\overline{X} >= 31.645$" has the property that the probability of rejection is 5% when $H_0$ is true (for the $\mu_0, \sigma$ and $n$ given)
+* We would reject because the Z-score from the sample is \[\frac{32-30}{10/\sqrt(100)}=2\]
+which is greater than 1.645. 
+  
+###T tests
+
+* Consider the example above except n= 16 instead of 100. 
+* The statistic
+\[\frac{\overline{X}-30}{s/\sqrt{16}}\]
+follows a T distribution with 15 df under $H_0$. So our test statistic is now $\sqrt{16}(32-30)/10=0.8$
+* The 95th percentile of the T distribution with 15 df is 1.7531 (obtained via qt(0.95, 15)) 
+* Since 0.8 < 1.7531, we fail to reject.
+
+**Two sided tests**  
+
+* Consider the same example. Suppose that we would reject the null hypothesis if the mean is too large or too small.
+* $H_a : \mu \neq 30$
+* Then we want the probability of rejecting under the null to be 5%, split equally as 2.5% in the upper and lower tail.
+* Thus, we will reject the null hypothesis if test statistic is larger than 2.1314 from qt(0.975, 15).
+* Since test statistic is 0.8, we fail again. But it is obvious to fail two sided test because we already failed the one sided test.
+
+**T test in R**
+```{R}
+data(father.son)
+t.test(father.son$sheight-father.son$fheight)
+```
+  
+**Connections with confidence intervals**
+
+* Consider testing $H_0 : \mu = \mu_0$ versus $H_a : \mu \neq \mu_0$
+* Take the set of all possible values for which you fail to reject $H_0,$ this set is a $(1-\alpha)*100%$ confidence interval fro $\mu$
+* The same works in reverse: if a $(1-\alpha)*100%$ interval contains $\mu_0$, then we fail to reject $H_0$
+  
+**Two group testing**
+* Test $H_0 \mu_1 = \mu_2$
+```{r}
+##define weight gain or loss
+wideCW <- dcast(ChickWeight, Diet + Chick ~ Time, value.var = "weight")
+names(wideCW)[-(1 : 2)] <- paste("time", names(wideCW)[-(1 : 2)], sep = "")
+wideCW <- mutate(wideCW,
+  gain = time21 - time0
+)
+wideCW14 <- subset(wideCW, Diet %in% c(1, 4))
+t.test(gain ~ Diet, paired = FALSE, 
+       var.equal = TRUE, data = wideCW14)
+```
+
+###Exact binomial test
+* Suppose a friend has 8 children, 7 of which are girls and none are twins. Perform the relevant hypothesis test. $H_0 : p =0.5 H_a: p>0.5$ What's the relevant rejection region so that the probability of rejecting is (less than) 5%?  
+When there's 7 or more girls, then the type 1 error rate is smaller than 5%.  
+**Notes**
+
+1. It's impossible to get an exact 5% level test for this case due to the discreteness of the binomial (you can't have fraction of child).
+    1.1. The closest is the rejection region [7:8]
+    1.2. Any alpha level lower than 0.0039 is not attainable.
+2. For larger sample sizes, we could do a normal approximation.
+3. Two sided test isn't obvious.
+    3.1. Given a way to do two sided tests, we could take the set of values of $p_0$ for which we fail to reject to get an exact binomial confidence interval (called the Clopper/Pearson).
+4. For these problems, people always create a P-value rather than computing the rejection region.

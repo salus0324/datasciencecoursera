@@ -1,0 +1,61 @@
+---
+title: "P values"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## P values
+The most common measure of statistical significance.  
+**Idea**: Suppose nothing is going on. How unusual is it to see the estimate we got?  
+**Approach**  
+
+1. Define the hypothetical distribution of a data summary (statistic) when nothing is going on (null hypothesis).
+2. Calculate the summary/statistic with the data we have (test statistic).
+3. Compare what we calculated to our hypothetical distribution and see if the value is "extreme" (p-value).
+
+###Definition
+The p-value is the probability under the null hypothesis of obtaining evidence as extreme or more extreme than that obtained.
+
+* If the p-value is small, then either $H_0$ is true and we have observed a rare event or $H_0$ is false.
+* Example: Suppose that you get a T statistic 2.5 for 15 df testing $H_0 =\mu=\mu_0$ versus $H_a : \mu > \mu_0$. The probability of getting T statistic as large as 2.5 is 1.2% (p value of 0.012).
+```{r}
+pt(2.5, 15, lower.tail=FALSE)
+```
+  
+###The attained significance level
+
+* Our test statistic is 2 for $H_0:\mu_=30$ versus $H_a:\mu>30$. We would reject the one sided test when $\alpha=0.05$ we would reject because test statistic is larger than 1.645. 
+* The area under the curve beyond test statistic 2 is the p-value. 
+* Therefore, p-value is the smallest value for alpha for which you would still reject the null hypothesis, hence the attained significance level.
+
+###P values for hypothesis tests
+* By reporting a P-value the reader can perform the hypothesis test at whatever $\alpha$ level get chosen.
+* If the p-value is less than $\alpha$, you can reject the null hypothesis.
+* For two sided hypothesis test, double the smaller of the two one-sided hypothesis test Pvalues.
+
+###Binomial example
+* Suppose a friend has 8 children, 7 of which are girls and none are twins. 
+* If each gender has an independent 50% probability for each birth, what's the probability of getting or more girls out of 8 births?
+```{r}
+choose(8, 7)*0.5^8+choose(8, 8)*0.5^8
+pbinom(6, size=8, prob=0.5, lower.tail=FALSE)
+```
+  
+* P value is 0.035. If we were testing the alternative hypothesis that p>0.5, we would reject at a 5% level, but not at 3%.
+* To get two-sided p-values, test alternative hypothesis that $p \neq=0.5$. In this case, the probability of being 7 or lager would be one one-sided p values, and the probability of being 7 or smaller would be another p-value. Take the smaller one of those two one-sided p-values and double the value. That's the procedure for getting a two-sided p value in these exact binomial p-values.
+
+###Poisson example
+Suppose that a hospital has an infection rate of 10 infections per 100 person/days at risk (rate of 0.1) during the last monitoring period. Assume that an infection rate of 0.05 is an important benchmark for quality control procedure.  
+**Null hypothesis**: $H_0: \lambda =0.05$ so that $\lambda_0*100 = 5$
+**Alternative hypothesis**: $H_a : \lambda> 0.05$
+```{r}
+# put 9 instead of 8 because ppois take strictly take above 8
+ppois(9, 5, lower.tail=FALSE)
+```
+  
+We can reject the null hypothesis!

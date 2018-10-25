@@ -1,0 +1,31 @@
+---
+title: "Expected Values"
+output: html_document
+header-includes:
+    - \usepackage{setspace}\doublespacing
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Expected values
+
+* The mean is a characterization of its center.
+* The variacne and std are characterizations of how spread out it is.
+* Sample expected values (the sample mean, variance...etc) will estimate the population versions.
+  
+**Population mean**: The expected value or mean of a random variable is the center of its distribution.  
+For discrete random variable, $E[X] = \sum_x xp(x)$.  
+$E[X]$ represents the center of mass of a collection of locations and weights, ${x, p(x)}$.  
+  
+**Sample mean**: The sample mean estimates population mean.
+\[\overline{X}=\sum_{i=1}^n x_ip(x_i)\]
+
+###Facts about expected values.
+
+1. Expected values are properties of distributions.  
+2. The average of random variables is itself a random variables and its associated distribution has an expected value.  
+3. The center of this distribution (the sample mean) is the same as that of the original distribution.  
+4. The sample mean is unbiased because its distribution is centered at what it's trying to estimate.
+5. The more data that goes into the sample mean, the more concentrated its density/mass function is around the population mean.

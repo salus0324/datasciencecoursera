@@ -1,0 +1,124 @@
+---
+title: "Multiple Comparison"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Multiple Comparison
+
+###Key ideas
+
+* Hypothesis testing/significance analysis is commonly overused
+* Correcting for multiple testing avoids false positive or discoveries
+* Two key components to multiple testing corrections
+    + Error measure
+    + Correction
+
+* **Example**: Suppose you are testing a hypothesis that a parameter $\beta$ equals zero versus the alternative that it does not equal zero. These are the possible outcomes.
+    + $m$ is the total number hypotheses tested
+    + $m_0$ is the number of true null hypotheses, an unknown parameter
+    + $m - m_0$ is the number of true alternative hypotheses
+    + $V$ is the number of false positives (Type I error) (also called "false discoveries")
+    + $S$ is the number of true positives (also called "true discoveries")
+    + $T$ is the number of false negatives (Type II error)
+    + $U$ is the number of true negatives
+    + $R=V+S$ is the number of rejected null hypotheses (also called "discoveries", either true or false)\
+  
+###Error rates
+
+* False positive rate - The rate at which false result are called significant: $E[\frac{V}{m_0}]$
+* Family wise error rate (FWER) - The probability of at least one false positive $Pr(V>=1)$
+* False discovery rate (FDR) - The rate at which claims of significance are false $E[\frac{V}{R}]$
+
+###Controlling the false positive rate
+If p-values are correctly calculated, calling all $P<\alpha$ will controll the false positive rate at level $\alpha$ on average.  
+Problem: Suppose you perform 10,000 tests and $\beta=0$ for all of them.  
+Suppose that you call all $P<0.05$ significant.  
+The expected number of false positive is $10,000*0.05=500$ false positives.  
+  
+**Controlling Family-wise error rate (FWER)**
+
+* Bonferroni correction is the oldest multiple testing correction
+* Basic idea:
+    + Suppose you do $m$ tests
+    + You want to control FWER at level $\alpha$ so $Pr(V>=1)<\alpha$
+    + Calculate P-values normally
+    + Set $\alpha_{fewer}=a/m$
+    + Call all p-values less than $\alpha_{fewer}$ significant
+    + Pros: easy and conservative, Cons: Might be too conservative.  
+
+  
+###Controlling false discovery rate (FDR)
+
+* The most popular correction when performing lots of tests.
+* Basic idea:
+    + Suppose you do $m$ tests
+    + You want to control FDR at level $\alpha$ so $E[\frac{V}{R}]$
+    + Calculate P-values normally
+    + Other the P-values from smallest to largest $P_1,..,P_m$
+    + Call any $P_1=<\alpha *\frac{i}{m}$ significant
+    + Pros: Easy and less conservative, Cons: allows more false positive and may behave strangely under dependence.
+  
+###Adjusted p-values (same as bonferroni )
+
+* Suppose p-values are $P_1,...,P_m$
+* You could adjust them by taking $P_{i, fwer} = max (m*P_i, 1)$ for each p-values.
+* Then if you call all $P_{i, fwer} < \alpha$ significant you will control the FWER.
+
+###Case study I: no true positives
+```{r}
+set.seed(1010093)
+pValues <- rep(NA, 1000)
+for (i in 1:1000){
+  y <- rnorm(20)
+  x <- rnorm(20)
+  pValues[i] <- summary(lm(y~x))$coeff[2,4]
+}
+#Controls false positive rate
+sum(pValues < 0.05)
+```  
+  
+We can see that even though x and y have no relationship, we are getting 60 false positives, this is about the alpha level, 5%.
+```{r}
+# Controls FWER
+sum(p.adjust(pValues, method='bonferroni') <0.05)
+# Controls FDR
+sum(p.adjust(pValues, method="BH")< 0.05)
+```
+  
+The p-adjust is preventing all the false positives.  
+
+###Case study II: 50$ true positives
+```{r}
+set.seed(1010093)
+pValues <- rep(NA, 1000)
+for (i in 1:1000){
+  x <- rnorm(20)
+  # first 500 beta=0, last 500 beta=2
+  if (i <=500){y <- rnorm(20)}
+  else {y <- rnorm(20, mean=2*x)}
+  pValues[i] <- summary(lm(y~x))$coeff[2,4]
+}
+trueStatus <- rep(c("zero", "not zero"), each=500)
+table(pValues < 0.05, trueStatus)
+```  
+  
+There are 24 false positives.  
+```{r}
+# Controls FWER
+table(p.adjust(pValues, method='bonferroni') <0.05, trueStatus)
+# Controls FDR
+table(p.adjust(pValues, method="BH")< 0.05, trueStatus)
+```
+  
+We can observe that controlling FWER is quite strict (zero false positive) but it rejects some true positives. Controlling FDR still accepts few false positive but performs better than before.  
+
+* P-values versus adjusted P-values
+```{r}
+par(mfrow=c(1,2))
+plot(pValues, p.adjust(pValues, method='bonferroni'),pch=19)
+plot(pValues, p.adjust(pValues, method='BH'), pch=19)
+```

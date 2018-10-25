@@ -1,0 +1,96 @@
+---
+title: "Power"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(reshape2)
+```
+
+##Power
+Power is the probability of rejecting the null hypothesis when it is false. The type II error is failing to reject the null hypothesis when it's false; the probability of a type II error is usually called $\beta$. Therefore, \[Power = 1-\beta\]  
+
+###Power and mean
+
+* $H_0 : \mu =30$ versus $H_a :\mu >30$
+* Then power is \[P(\frac{\overline{X}-30}{s/\sqrt{n}}>t_{1-\alpha, n-1}; \mu=\mu_a)\]
+* Note that this is a function that depends on the specific value of $\mu_a$
+* As $\mu_a$ approaches 30, the power approaches $\alpha$.
+* For this example, we reject if $\frac{\overline{X}-30}{\sigma/\sqrt{n}}>z_{1-\alpha}$, or $\overline{X}>30+z_{1-\alpha}\frac{\sigma}{\sqrt{n}}$
+* Under $H_0:\overline{X}\sim N(\mu_0,\sigma^2/n)$
+* Under $H_0:\overline{X}\sim N(\mu_a,\sigma^2/n)$
+```{r}
+mu0<-30
+mua<-32
+n<-16
+sigma<-4
+alpha<-0.05
+z <- qnorm(1-alpha)
+pnorm(mu0+z*sigma/sqrt(n), mean = mu0, sd=sigma/sqrt(n), lower.tail=FALSE)
+pnorm(mu0+z*sigma/sqrt(n), mean = mua, sd=sigma/sqrt(n), lower.tail=FALSE)
+```
+  
+We can observe that power gets larger when mean is away from 30.
+
+###Power and sample size, n
+```{r, fig.align='center', fig.height=6, fig.width=12}
+nseq <- c(8, 16, 32, 64, 128)
+mua <- seq(30, 35, by = 0.1)
+z <- qnorm(.95)
+power <- sapply(nseq, function(n)
+pnorm(mu0 + z * sigma / sqrt(n), mean = mua, sd = sigma / sqrt(n), 
+          lower.tail = FALSE)
+    )
+colnames(power) <- paste("n", nseq, sep = "")
+d <- data.frame(mua, power)
+d2 <- melt(d, id.vars = "mua")
+names(d2) <- c("mua", "n", "power")    
+g <- ggplot(d2, 
+            aes(x = mua, y = power, col = n)) + geom_line(size = 2)
+g         
+```
+  
+We can observe that power increase as mua or n increases.
+
+###Power and other factors
+
+* Assuming everything is the same. When alpha decreases, power also decreases and type II error rate goes up (but type I error rate goes down).
+* When sigma decreases, power increases and type II error rate goes down (type I error rate stays the same). This means that if the sample has a lot of noise, the power will be lower.
+  
+###Notes on power
+
+* When testing $H_a :\mu > \mu_0$, notice if power is $1-\beta$, then
+\[1-\beta = P(\overline{X}>\mu_0+z_{1-\alpha}\frac{\sigma}{\sqrt{n}}; \mu=\mu_a)\]
+* where $\overline{X} \sim N(\mu_a, \sigma^2/n)$
+* Unknowns: $\mu_a, \sigma, n, \beta$
+* Knowns: $\mu_0, \alpha$
+* If any 3 of the unknowns are specified, we can solve for the unknown remainder.
+* Power is calculated based on $\frac{\sqrt{n}(\mu_a-\mu_0)}{\sigma}$
+    + The quantity $\frac{\mu_a-\mu_0}{\sigma}$ is called the effect size, the difference in the means in standard deviation unites.
+  
+###T-test power
+
+* Consider calculating power for a Gossett's T test for our example
+* The power is \[P(\frac{\overline{X}-\mu_0}{s/\sqrt{n}}>t_{1-\alpha, n-1}; \mu=\mu_a)\]
+* Calculating this requires the non-central t distribution.
+* power.t.test R function can handle this. Omit one of the arguments and it will solve for that omitted argument.  
+**Example1**: When power is unknown
+```{r}
+# delta is the is the difference of the means. m-m0
+power.t.test(n=16, delta=2, sd=4, type="one.sample", alt="one.sided")$power
+# Different delta and sd, but same effect size.
+power.t.test(n=16, delta=2/4, sd=1, type="one.sample", alt="one.sided")$power
+power.t.test(n=16, delta=100, sd=200, type="one.sample", alt="one.sided")$power
+```
+  
+**Example2**: When n is unknown
+```{r}
+# delta is the is the difference of the means. m-m0
+power.t.test(power=0.8, delta=2, sd=4, type="one.sample", alt="one.sided")$n
+# Different delta and sd, but same effect size.
+power.t.test(power=0.8, delta=2/4, sd=1, type="one.sample", alt="one.sided")$n
+power.t.test(power=0.8, delta=100, sd=200, type="one.sample", alt="one.sided")$n
+```
+  
