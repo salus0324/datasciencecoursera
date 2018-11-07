@@ -1,0 +1,165 @@
+---
+title: "Multivariate Regression Examples"
+author: "Katherine Shim"
+date: "October 30, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+require(datasets)
+require(stats)
+library(dplyr)
+```
+
+###Multivariate regression example1
+swiss dataset: Standardized fertility measure and socio-economic indicators for each of 47 French-speaking provinces of Switzerland at about 1888.
+```{r, echo = FALSE}
+summary(lm(Fertility ~ . , data = swiss))$coefficients
+```
+  
+The interpretation is
+
+* Agriculture is expressed in percentages (0 - 100)
+* Estimated coefficient is -0.1721.
+* Our models estimates an expected 0.17 decrease in standardized fertility for every 1% increase in percentage of males involved in agriculture in holding the remaining variables constant.
+* The t-test for $H_0: \beta_{Agri} = 0$ versus $H_a: \beta_{Agri} \neq 0$ is  significant as p-value is lowe than 0.05.
+* Interestingly, the unadjusted estimate is 
+```{r}
+summary(lm(Fertility ~ Agriculture, data = swiss))$coefficients
+```
+We can see the coefficient is quite different and this scenario also suggests statistical significance. This phenomenom is called Simson's paradox.
+  
+###Multivariate regression example2
+```{r, echo = TRUE}
+n <- 100
+x2 <- 1 : n
+x1 <- .01 * x2 + runif(n, -.1, .1)
+y = -x1 + x2 + rnorm(n, sd = .01)
+summary(lm(y ~ x1))$coef
+summary(lm(y ~ x1 + x2))$coef
+```
+We can see the first fit has positive x1 coefficient because it picked up the linear effect from x2. After the x2 linear effect got removed via adjustment x1 is having negative coefficient.  
+However, we should be cautious of adding extra variables unnecessarily
+
+###Multivariate regression on factor variables
+**Linear regression on two level factor variables**: variables are binary variables
+
+* Consider the linear model
+\[
+Y_i = \beta_0 + X_{i1} \beta_1 + \epsilon_{i}
+\]
+where each $X_{i1}$ is binary so that it is a 1 if measurement $i$ is in a group and 0 otherwise.
+* Then for people in the group $E[Y_i] = \beta_0 + \beta_1$, and for people not in the group $E[Y_i] = \beta_0$
+* Then, $\hat \beta_0 + \hat \beta_1$ is the mean for those in the group and $\hat \beta_0$ is the mean for those not in the group. So the estimated mean of the group will be the mean of those group.
+* $\beta_1$ is interpretted as the increase or decrease in the mean comparing those in the group to those not.
+  
+**Linear regression on multi level factor variables**
+The example three factors are US political party affiliation; Republican, Democrat, Indepedent.
+
+* $Y_i = \beta_0 + X_{i1} \beta_1 + X_{i2} \beta_2 + \epsilon_i$.
+* $X_{i1}$ is 1 for Republicans and 0 otherwise. $X_{i2}$ is 1 for Democrats and 0 otherwise.
+* We can omit $X_{i3}$ for Independent because we know it's Independent when both $X_{i1}$ and $X_{i2}$ are zero.
+* If $i$ is Republican $E[Y_i] = \beta_0 +\beta_1$
+* If $i$ is Democrat $E[Y_i] = \beta_0 + \beta_2$.
+* If $i$ is Independent $E[Y_i] = \beta_0$. 
+* $\beta_1$ compares Republicans to Independents.
+* $\beta_2$ compares Democrats to Independents.
+* $\beta_1 - \beta_2$ compares Republicans to Democrats.
+
+###Multivariate regression example 3
+```{r}
+data(InsectSprays)
+g <- ggplot(data = InsectSprays, aes(y = count, x = spray, fill  = spray))
+g <- g + geom_violin(colour = "black", size = 2)
+g <- g + xlab("Type of spray") + ylab("Insect count")
+g
+```
+  
+R automatically choose spray A as reference. Other factor variables will be in comparison with sprayA.
+```{r}
+summary(lm(count~spray, data=InsectSprays))$coef
+```
+
+* The intercept, 14.5 is the mean of counts in spray A group.
+* The coefficient for spray B, 0.833, is the change in the  mean between spray B and spray A. So the mean of the spray B is 15.33.
+  
+We can also hard code.
+```{r}
+summary(lm(count ~ 
+             I(1 * (spray == 'B')) + I(1 * (spray == 'C')) + 
+             I(1 * (spray == 'D')) + I(1 * (spray == 'E')) +
+             I(1 * (spray == 'F'))
+           , data = InsectSprays))$coef
+```
+  
+If we include all the spray groups, R will omit the last factor variable automatically.
+```{r}
+summary(lm(count ~ 
+   I(1 * (spray == 'B')) + I(1 * (spray == 'C')) +  
+   I(1 * (spray == 'D')) + I(1 * (spray == 'E')) +
+   I(1 * (spray == 'F')) + I(1 * (spray == 'A')), data = InsectSprays))$coef
+```
+
+Omit the intercept if you want mean of each group as its coefficient.
+```{r, echo= TRUE}
+summary(lm(count ~ spray - 1, data = InsectSprays))$coef
+#We can see that the coefficients are exactly equal to the mean of the counts of each spray group
+summarise(group_by(InsectSprays, spray), mn = mean(count))
+```
+  
+You can reorder the levels using relevel function. In the example below, now spray C will be used as reference group.
+```{r}
+spray2 <- relevel(InsectSprays$spray, "C")
+summary(lm(count~spray2, data=InsectSprays))$coef
+```
+  
+###Multivariate regression on mix of factor and cont' variables
+In this examplle, factor variable is CatholicBin and cont' variable is Agriculture. We will fit multiple models.  
+```{r}
+swiss <- mutate(swiss, CatholicBin = 1 * (Catholic > 50))
+g = ggplot(swiss, aes(x = Agriculture, y = Fertility, colour = factor(CatholicBin)))
+g = g + geom_point(size = 6, colour = "black") + geom_point(size = 4)
+g = g + xlab("% in Agriculture") + ylab("Fertility")
+g
+```
+  
+**Model1: Use only Agriculture as covariate**
+```{r}
+fit <- lm(Fertility ~ Agriculture, data = swiss)
+g1 <- g
+g1 <- g1 + geom_abline(intercept = coef(fit)[1], slope = coef(fit)[2], size = 2)
+g1
+```
+
+**Model2: Use Agriculture and CatholicBin as covariates**
+```{r}
+fit2 <- lm(Fertility ~ Agriculture + factor(CatholicBin), data = swiss)
+g2 <- g
+#The first line is when CatholicBin=0
+g2 <- g2 + geom_abline(intercept = coef(fit2)[1], slope = coef(fit2)[2], size = 2)
+#The second line is when CatholicBin=1
+g2 <- g2 + geom_abline(intercept = coef(fit2)[1] + coef(fit2)[3], slope = coef(fit2)[2], size = 2)
+# The intercepts are different but slopes are the same
+g2
+```
+
+**Model3: Use Agriculture and CatholicBin, and their interaction as covariates**
+```{r}
+fit3 <- lm(Fertility ~ Agriculture * factor(CatholicBin), data = swiss)
+g3 <- g
+#The first line is when CatholicBin=0
+g3 <- g1 + geom_abline(intercept = coef(fit3)[1], slope = coef(fit3)[2], size = 2)
+#The second line is when CatholicBin=1
+g3 <- g1 + geom_abline(intercept = coef(fit3)[1] + coef(fit3)[3], 
+                          slope = coef(fit3)[2] + coef(fit3)[4], size = 2)
+#Both intercepts and slopes are different
+g3
+```
+
+* The intercept is for non catholic provinces
+* Agriculture coeff is slope for non catholic provinces
+* Intercept + factor(CatholicBin)1 coeffs will be intercept for catholic provinces
+* Agriculture + Agriculture:factor(CatholicBin)1 coeffs will be slope for catholic provinces
+

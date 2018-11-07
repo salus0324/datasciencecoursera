@@ -1,0 +1,89 @@
+---
+title: "Multivariable Regression"
+author: "Katherine Shim"
+date: "October 30, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(datasets)
+data(swiss)
+```
+
+###The linear model
+
+* The general linear model extends simple linear regression by adding terms linearly into the model
+\[Y_i =  \beta_1 X_{1i} + \beta_2 X_{2i} + \ldots +
+\beta_{p} X_{pi} + \epsilon_{i} 
+= \sum_{k=1}^p X_{ik} \beta_j + \epsilon_{i}\]
+* Here $X_{1i}=1$ typically, so that an intercept is included.
+* Least squares minimizes
+\[
+\sum_{i=1}^n \left(Y_i - \sum_{k=1}^p X_{ki} \beta_j\right)^2
+\]
+* Note that it is linear model because of the linearity in the coefficients. Therefore, 
+\[Y_i =  \beta_1 X_{1i}^2 + \beta_2 X_{2i}^2 + \ldots +
+\beta_{p} X_{pi}^2 + \epsilon_{i}\]
+is still linear model.
+
+###Multivariable Regression
+\[\hat \beta_1 = \frac{\sum_{i=1}^n e_{i, Y | X_2} e_{i, X_1 | X_2}}{\sum_{i=1}^n e_{i, X_1 | X_2}^2}\]
+
+* The equation above is taken from how the slope of the regression line throug origin is \[\sum X_iY_i/\sum {X_i}^2\]
+* $e_{i, Y | X_2}$ is residual after removing $X_2$'s linear effect from $Y$. $e_{i, X_1 | X_2}$ is residual after removing $X_2$'s linear effect from $X_1$.
+* The regression estimate for $\beta_1$ is the regression 
+through the origin estimate having regressed $X_2$ out of both
+the response and the predictor.
+* Multivariate regression estimates are exactly those having removed the linear relationship of the other variables from both the regressor and response.
+
+###Simple multivariable regression with two predictors
+
+* $Y_{i} = \beta_1 X_{1i} + \beta_2 X_{2i}$ where  $X_{2i} = 1$ is an intercept term.
+* Fitted coefficient of $X_{2i}$ on $Y_{i}$ is $\bar Y$ because the predictor is intercept.
+    
+    + The residuals $e_{i, Y | X_2} = Y_i - \bar Y$
+* Notice the fitted coefficient of $X_{2i}$ on $X_{1i}$ is $\bar X_1$
+    + The residuals $e_{i, X_1 | X_2}= X_{1i} - \bar X_1$
+* Thus we can standard regression slope equation.
+\[
+\hat \beta_1 = \frac{\sum_{i=1}^n e_{i, Y | X_2} e_{i, X_1 | X_2}}{\sum_{i=1}^n e_{i, X_1 | X_2}^2} = \frac{\sum_{i=1}^n (X_i - \bar X)(Y_i - \bar Y)}{\sum_{i=1}^n (X_i - \bar X)^2}
+= Cor(X, Y) \frac{Sd(Y)}{Sd(X)}
+\]
+* **General Case**:
+    + Least squares solutions have to minimize
+\[
+\sum_{i=1}^n (Y_i - X_{1i}\beta_1 - \ldots - X_{pi}\beta_p)^2
+\]
+    + The least squares estimate for the coefficient of a multivariate regression model is exactly regression through the origin with the linear relationships with the other regressors removed from both the regressor and outcome by taking residuals. 
+    + In this sense, multivariate regression "adjusts" a coefficient for the linear impact of the other variables. 
+* The interpretation of a multivariate regression coefficient is the expected change in the response per unit change in the regressor, holding all of the other regressors fixed.
+
+    
+###Coding demonstration of multivariate regression coeff 
+```{r}
+n <- 100
+x <- rnorm(n) 
+x2 <- rnorm(n)
+x3 <- rnorm(n)
+y <- 1 + x + x2 + x3 + rnorm(n, sd = .1)
+ey <- resid(lm(y ~ x2 + x3))
+ex <- resid(lm(x ~ x2 + x3))
+sum(ey * ex) / sum(ex ^ 2)
+# -1 is to get rid of the intercept
+coef(lm(ey ~ ex - 1))
+coef(lm(y ~ x + x2 + x3)) 
+```
+
+###Summary
+
+* Model $Y_i = \sum_{k=1}^p X_{ik} \beta_{k} + \epsilon_{i}$ where $\epsilon_i \sim N(0, \sigma^2)$
+* Fitted responses $\hat Y_i = \sum_{k=1}^p X_{ik} \hat \beta_{k}$
+* Residuals $e_i = Y_i - \hat Y_i$
+* Variance estimate $\hat \sigma^2 = \frac{1}{n-p} \sum_{i=1}^n e_i ^2$
+* To get predicted responses at new values, $x_1, \ldots, x_p$, simply plug them into the linear model $\sum_{k=1}^p x_{k} \hat \beta_{k}$
+* Coefficients have standard errors, $\hat \sigma_{\hat \beta_k}$, and
+$\frac{\hat \beta_k - \beta_k}{\hat \sigma_{\hat \beta_k}}$
+follows a $T$ distribution with $n-p$ degrees of freedom.
+* Predicted responses have standard errors and we can calculate prediction intervals.
+

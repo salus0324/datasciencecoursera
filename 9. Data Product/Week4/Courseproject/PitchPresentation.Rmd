@@ -1,0 +1,48 @@
+---
+title: "Pitch Presentation"
+author: "Katherine"
+date: "November 6, 2018"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Topic
+
+- This R markdown presentation provides reproducible pitch slides that explains the Shiny application I created.
+- In order to find the Shiny app, please go to https://salus0324.shinyapps.io/Courseproject/.
+
+## Summary of the Shiny Application
+
+- Purpose: Perform univariate linear regression analysis on the Mtcars dataset to predict mpg using the chose predictor variable.
+- Predictor variable choices:
+    + Cylinders (cyl)
+    + Displacement (disp)
+    + Gross horsepower (hp)
+    + Weight (wt)
+    + Carburetors (carb)
+    + Gears (gear)
+- Output:
+    + Scatter plot of the data
+    + Linear regression model
+    + LM slope and intercept
+
+## Example 1
+If user chose Cylinders (cyl) as the predictor variable the output plot would look like below.
+
+```{r cars, echo = FALSE}
+fit <- lm(mtcars$mpg ~ mtcars$cyl, data = mtcars)
+plot(mtcars$cyl, mtcars$mpg, xlab = "cyl", ylab = "MPG", main = "Linear model", cex = 1.5, pch = 16, bty = "n")
+abline(fit, col = "blue", lwd = 2)
+```
+
+## Example 2
+If user chose Displacement (disp) as the predictor variable the output plot would look like below.
+```{r pressure}
+fit <- lm(mtcars$mpg ~ mtcars$disp, data = mtcars)
+plot(mtcars$disp, mtcars$mpg, xlab = "disp", ylab = "MPG", main = "Linear model", cex = 1.5, pch = 16, bty = "n")
+abline(fit, col = "blue", lwd = 2)
+```
+

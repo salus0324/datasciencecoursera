@@ -1,0 +1,102 @@
+---
+title: "Residual and Diagnostic"
+author: "Katherine Shim"
+date: "October 31, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### The linear model
+* Specified as $Y_i =  \sum_{k=1}^p X_{ik} \beta_j + \epsilon_{i}$
+* We'll also assume here that $\epsilon_i \stackrel{iid}{\sim} N(0, \sigma^2)$
+* Define the residuals as
+$e_i = Y_i -  \hat Y_i =  Y_i - \sum_{k=1}^p X_{ik} \hat \beta_j$
+* Our estimate of residual variation is $\hat \sigma^2 = \frac{\sum_{i=1}^n e_i^2}{n-p}$, the $n-p$ so that $E[\hat \sigma^2] = \sigma^2$
+
+###Influence and leverage
+**Leverage**: How far away from the center of the axis the data point is.  
+**Influence**: Whether or not a point chooses to exert that leverage. 
+
+```{r, fig.height = 5, fig.width=5, echo = FALSE, results='hide'}
+n <- 100; x <- rnorm(n); y <- x + rnorm(n, sd = .3)
+plot(c(-3, 6), c(-3, 6), type = "n", frame = FALSE, xlab = "X", ylab = "Y")
+abline(lm(y ~ x), lwd = 2)
+points(x, y, cex = 2, bg = "lightblue", col = "black", pch = 21)
+points(0, 0, cex = 2, bg = "darkorange", col = "black", pch = 21)
+points(0, 5, cex = 2, bg = "darkorange", col = "black", pch = 21)
+points(5, 5, cex = 2, bg = "darkorange", col = "black", pch = 21)
+points(5, 0, cex = 2, bg = "darkorange", col = "black", pch = 21)
+```
+  
+* Lower left point: In the middle of the cloud of data. It doesn't have influence nor leverage.
+* Upper right point: High leverage because $x$ is quite away from the $\overline{x}$. However it has low influence becuase the point adheres very well to the regression line.
+* Lower right point: High leverage, high influence.
+* Upper left point: Lower leverage, low influence.
+
+###Outliers
+
+* Outliers can have varying degrees of influence.
+* Outliers can conform to the regression relationship (i.e being marginally outlying in X or Y, but not outlying given the regression relationship).
+
+###Influence measures
+
+  * `rstandard` - standardized residuals, residuals divided by their standard deviations
+  \[Standardized\_Residual_i = \frac{Residual_i}{Stnadard deviation\_of\_Residual_i}\]
+  * `rstudent` - standardized residuals, residuals divided by their standard deviations, where the ith data point was deleted in the calculation of the standard deviation for the residual to follow a t distribution
+  * `hatvalues` - measures of leverage
+  * `dffits` - change in the predicted response when the $i^{th}$ point is deleted in fitting the model.
+  * `dfbetas` - change in individual coefficients when the $i^{th}$ point is deleted in fitting the model.
+  * `cooks.distance` - overall change in the coefficients when the $i^{th}$ point is deleted.
+  * `resid` - returns the ordinary residuals
+  * `resid(fit) / (1 - hatvalues(fit))` where `fit` is the linear model fit returns the PRESS residuals. PRESS residual is $y_i-\hat y_i^{(-i)}$. Higher the leverage, this value will get bigger.
+  
+###Coding example 1
+```{r,  echo=FALSE}
+n <- 100
+x <- c(10, rnorm(n))
+y <- c(10, c(rnorm(n)))
+plot(x, y, frame = FALSE, cex = 2, pch = 21, bg = "lightblue", col = "black")
+abline(lm(y ~ x))      
+```
+  
+There's no correlation between x and y. The regression line is produced because of one outlier. Let's look through diagnostics.
+```{r}
+fit <- lm(y~x)
+round(dfbetas(fit)[1:10, 2], 3)
+round(hatvalues(fit)[1:10], 3)
+```
+We can observe big dfbetas and hatvalues for the first point, the outlier. It has big leverage and cause big change in the coefficients when the point is deleted in fitting the model. 
+
+
+###Coding example 2
+```{r, echo=FALSE}
+x <- rnorm(n); y <- x + rnorm(n, sd = .3)
+x <- c(5, x); y <- c(5, y)
+plot(x, y, frame = FALSE, cex = 2, pch = 21, bg = "lightblue", col = "black")
+fit2 <- lm(y ~ x)
+abline(fit2)            
+```
+  
+There is a clear regression relationship. There's an outlier that doesn't have much influence.
+```{r, echo = TRUE}
+round(dfbetas(fit2)[1 : 10, 2], 3)
+round(hatvalues(fit2)[1 : 10], 3)
+```
+The dfbetas of the outlier is still big but not as crazy as case 1. The hatvalue is very big because it has big leverage.  
+
+* In multivariable model residual plot, residuals get plotted against fitted value instead of $x$, unlike linear model where you can plot residual plot over $x$.
+
+###Diagnostic plots
+```{r, fig.height = 5, fig.width = 5, echo=FALSE}
+data(swiss); par(mfrow = c(2, 2))
+fit <- lm(Fertility ~ . , data = swiss); plot(fit)
+```
+
+* Residual vs Fitted: Want to capture systematic pattern in residuals.
+* Normal Q-Q: Test the normality of the residual terms.
+* Scale-location: Standardized residuals vs Fitted values
+* Residuals vs Leverage: Standardized residuals vs leverage
+

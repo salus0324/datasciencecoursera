@@ -5,11 +5,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(UsingR)
 ```
-
-## Linear least squares
-
-
 ###Background
 
 * **Empirical mean**: \[\overline{X} = \frac{1}{n}\sum_{i=1}^{n}X_i\]
@@ -26,4 +25,59 @@ knitr::opts_chunk$set(echo = TRUE)
     + $Cor(X,Y)$ measures the strength of the linear relationship betwen X and Y data, with stronger relationship as $Cor(X,Y)$ heads towards -1 or 1.
     + $Cor(X,Y)=0$ implies no linear relationship.
 
-### Lin
+### Linear Least Squares
+Recall Galton dataset that has children and parents heights. Let's say we want to use parents' heights to explain children's heights. 
+
+* Let $Y_i$ be the $i^{th}$ child's height and $X_i$ be the $i^{th}$ parents' heights.
+* Consider finding the best line
+    + Child's height = $\beta_0$ + Parent's Height$\beta_1$
+* Use least squares \[\sum_{i=1}^{n}\{Y_i-(\beta_0+\beta_1 X_i)\}^2\]
+* **Results**
+    + The least squares model fit to the line $Y=\beta_0+\beta_1 X$ through the data pairs $(X_i, Y_i)$ with $Y_i$ as the outcome obtains the line $Y=\hat{\beta_0}+\hat{\beta_1}X$ where
+    \[\hat{\beta_1} = Cor(Y,X)\frac{Sd(Y)}{Sd(X)}, \hat{\beta_0}=\overline{Y}-\hat{\beta_1}\overline{X}\]
+    + $\hat{\beta_1}$ has the units of $Y/X$, and $\hat{\beta_0}$ has the units of $Y$.
+    + The line passes through the point $(\overline{X},\overline{Y})$
+    + The slope of the regression line with X as the outcome and Y as the predictor is $Cor(Y,X)Sd(X)/Sd(Y)$.
+    + The slope is the same one you would get if you centered the data, $(X_i-\overline{X}, Y_i-\overline{Y})$, and did regression through the origin.
+    + If you normalized the data ${\frac{X_i-\overline{X}}{Sd(X)},\frac{Y_i-\overline{Y}}{Sd(Y)}}$, the slope is $Cor(Y,X)$
+* Coding example:
+```{r}
+data(galton)
+y <- galton$child
+x <- galton$parent
+beta1 <- cor(y, x)*sd(x)/sd(y)
+beta0 <- mean(y) -beta1*mean(x)
+rbind(c(beta0, beta1), coef(lm(x~y)))
+# Let's check if regresion through the origin yield an equivalent slope
+yc <- y - mean(y)
+xc <- x - mean(x)
+#Equation for getting slope of regression through origin
+beta1 <- sum(yc*xc)/sum(xc^2)
+c(beta1, coef(lm(y~x))[2], coef(lm(yc~xc-1)))
+#Normalizing variables results in the slope being the correlation of X and Y
+yn <- (y - mean(y))/sd(y)
+xn <- (x - mean(x))/sd(x)
+c(cor(y,x), cor(yn, xn), coef(lm(yn~ xn))[2])
+```
+
+###Regression to the mean
+```{r}
+data(father.son)
+y <- (father.son$sheight - mean(father.son$sheight)) / sd(father.son$sheight)
+x <- (father.son$fheight - mean(father.son$fheight)) / sd(father.son$fheight)
+rho <- cor(x, y)
+g <- ggplot(data.frame(x = x, y = y), aes(x = x, y = y))
+g <- g + geom_point(size = 6, colour = "black", alpha = 0.2)
+g <- g + geom_point(size = 4, colour = "salmon", alpha = 0.2)
+g <- g + xlim(-4, 4) + ylim(-4, 4)
+g <- g + geom_abline(intercept = 0, slope = 1)
+g <- g + geom_vline(xintercept = 0)
+g <- g + geom_hline(yintercept = 0)
+g <- g + geom_abline(intercept = 0, slope = rho, size = 2)
+g <- g + geom_abline(intercept = 0, slope = 1 / rho, size = 2)
+g <- g + xlab("Father's height, normalized")
+g <- g + ylab("Son's height, normalized")
+g
+```
+  
+The fact that regression line is closer to x-axis demonstrates the regression to the mean. The x-axis is the mean of the son's height. We can observe the same when we flip the dependent/independent variables.

@@ -1,0 +1,82 @@
+---
+title: "R Classes and Methods"
+author: "Katherine Shim"
+date: "November 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Classes and Methods
+
+* A system for doing object oriented programming
+* R has two styles of classes and methods
+    1. S3 classes/methods (old school)
+    2. S4 classes/methods: The code for implementing S4 classes/methods in R is in the methods package, which is usually loaded by default
+
+### Object Oreinted Programming in R
+
+* A class is a desciprtion of an thing. A class can be defined using `setClass()` in the methods package
+* An object is an instance of a class. Objects can be created using `new()`
+* A method is a function that only operates on a certain class of obejcts.
+* A generic function is an R function which dispatches methods. A generic function typically encasulates a "generic" concept (e.g. `plot`, `mean`, `predict`,...)
+* A method is the implementation of a generic function for an obejct of a particular class.
+
+
+### Classes
+All objects in R have a class which can be determined by the class function
+```{r}
+class(1)
+class(TRUE)
+class(rnorm(100))
+class(NA)
+class("foo")
+x <- rnorm(100)
+y <- x + rnorm(100)
+fit <- lm(y~x)
+class(fit)
+```
+
+### Generics/Methods in R
+
+* S4 and S3 style generic functions look different but conceptually, they are the same.
+* You can write new methods for an existic generic OR create your own generics and associated methods.
+* If a data type doesn't exist in R that matches programmers needs, the programmer can define a new class along with generics/methods that go with it.
+
+### S3 generic and methods in R
+```{r}
+#These generic functions call UseMethod("function")
+mean
+print
+#The mean generic function has a number of methods associated with it
+methods("mean")
+```
+
+### S4 generic and methods in R
+The `show` function is from the methods package and is the S4 equivalent of `print`
+```{r}
+show
+showMethods("show")
+```
+
+###Generic/method mechanism
+The first argument of a generic function is an object of a particular class
+
+1. The generic function checks the class of the object
+2. A search is done to see if there is an appropriate method for that class.
+3. If there exists a method for that class, then that method is called on the object and we're done.
+4. If a method for that class doesn't exist, a search is done to see if there is a default method for the generic. If a default exists, then the default method is called.
+5. If a default method doesn't exist, then an error is thrown.
+
+### S3 Example1
+
+1. The class of x is numeric
+2. There's no mean method for numeric objects
+3. It calls the default function for `mean`
+```{r}
+set.seed(2)
+x <- rnorm(100)
+mean(x)
+```

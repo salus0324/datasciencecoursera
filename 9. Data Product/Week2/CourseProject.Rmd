@@ -1,0 +1,32 @@
+---
+title: "Places to do Trick or Treating in SF"
+date: "November 1, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(leaflet)
+```
+
+In this project, I will use leaflet package to map out good places to do trick or treating in San Francisco.  
+
+```{r, echo=FALSE}
+pumpkin <- makeIcon(
+  iconUrl = "https://cdn2.iconfinder.com/data/icons/holloween/48/Halloween-09-512.png",
+  iconWidth = 31*215/230, iconHeight = 31,
+  iconAnchorX = 31*215/230/2, iconAnchorY = 16
+)
+trickortreat <- data.frame(
+  lat = c(37.765064, 37.72556, 37.751912, 37.782121, 37.788675, 37.736668),
+  lng = c(-122.44397, -122.413484, -122.423967, -122.482679, -122.488308, -122.466119))
+streetnames <- c(
+  "Belvedere Street", "Noe Valley", "Fair Oaks Street", "Presidio Heights", "Sea Cliff", "St.Francis Wood"
+)
+
+
+trickortreat %>% 
+  leaflet() %>%
+  addTiles() %>%
+  addMarkers(icon = pumpkin, popup = streetnames, clusterOptions = markerClusterOptions())
+```

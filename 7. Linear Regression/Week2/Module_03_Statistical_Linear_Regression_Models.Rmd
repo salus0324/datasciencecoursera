@@ -1,0 +1,82 @@
+---
+title: "Statistical Linear Regression to the Mean"
+
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(UsingR)
+library(ggplot2)
+```
+
+###Basic regression model with additive Gaussian errors
+
+* Consider developing a probabilistic model for linear regression \[Y_i = \beta_0+\beta_1 X_i +\epsilon_i\]
+* $\epsilon_i$ are assumed iid $N(0, \sigma^2)$
+* $E[Y_i|X_i=x_i]=\mu_i=\beta_0+\beta_1 x_i$
+* $Var(Y_i|X_i=x_i)=\sigma^2$ This is the variance around the regression line not the variance of the response. Hence, it will be lower than the variance of the response because some of the variation of reponse is explained by X.
+
+###Interpretation of regression coefficients
+
+**Intercept, $\beta_0$**  
+
+* $\beta_0$, intercept is the expected value of the response when the predictor is 0 \[E[Y|X=0]=\beta_0+\beta_1*0=\beta_0\]
+* Consider that 
+\[Y_i = \beta_0 + \beta_1 X_i + \epsilon_i
+= \beta_0 + a \beta_1 + \beta_1 (X_i - a) + \epsilon_i
+= \tilde \beta_0 + \beta_1 (X_i - a) + \epsilon_i \]
+So, shifting your $X$ values by balue a changes the intercept, but not the slope
+* Often $a$ is set to $\overline{X}$ so that the intercept is interpretted as the expected response at the average $X$ value.  
+
+**Slope, $\beta_1$**  
+
+* $\beta_1$ is the expected change in reponse for a 1 unit change in the predictor.
+* Consider the impact of changing the units of $X$.
+\[Y_i = \beta_0 + \beta_1 X_i + \epsilon_i
+= \beta_0 + \frac{\beta_1}{a} (X_i a) + \epsilon_i
+= \beta_0 + \tilde \beta_1 (X_i a) + \epsilon_i\]
+Multiplication of $X$ by a factor $a$ results in dividing the slope by a factor of $a$.
+  
+###Linear Regression for Prediction
+Guess the outcome at $X$, the regression model guesses $\hat{\beta_0} + \hat{\beta_1}X$  
+**Example**
+```{r}
+data(diamond)
+g <- ggplot(diamond, aes(x = carat, y = price))
+g <- g + xlab("Mass (carats)")
+g <- g + ylab("Price (SIN $)")
+g <- g + geom_point(size = 7, colour = "black", alpha=0.5)
+g <- g + geom_point(size = 5, colour = "blue", alpha=0.2)
+g <- g + geom_smooth(method = "lm", colour = "black")
+g
+#Fitting the linear regression model
+fit <- lm(price~carat, data=diamond)
+coef(fit)
+```
+  
+We estimate an expected $3721.02 increase in price for every carat increase in mass of diamond.  
+```{r}
+# Getting a more interpretable intercept by centering the data
+fit2 <- lm(price~I(carat-mean(carat)), data=diamond)
+coef(fit2)
+```
+  
+$500.1 is the expected price for the average sized diamond of the data (0.2042 carats)  
+```{r}
+# Change the unit of independent variable
+fit3 <- lm(price~I(carat*10), data=diamond)
+coef(fit3)
+```
+  
+We estimate an expected $372.10 increase in price for every 1/10th of carat increase in mass of diamond.  
+
+```{r}
+#Predicting the price of a diamond
+newx <- c(0.16, 0.27, 0.34)
+coef(fit)[1]+coef(fit)[2]*newx
+predict(fit, newdata=data.frame(carat=newx))
+```
+
+  
+  

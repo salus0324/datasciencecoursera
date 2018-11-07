@@ -1,0 +1,93 @@
+---
+title: "Inference in Regression"
+author: "Katherine Shim"
+date: "October 29, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(UsingR)
+library(ggplot2)
+```
+
+###Inference
+Standard error of the regression coefficients
+
+* $\sigma_{\hat \beta_1}^2 = Var(\hat \beta_1) = \sigma^2 / \sum_{i=1}^n (X_i - \bar X)^2$
+* $\sigma_{\hat \beta_0}^2 = Var(\hat \beta_0)  = \left(\frac{1}{n} + \frac{\bar X^2}{\sum_{i=1}^n (X_i - \bar X)^2 }\right)\sigma^2$
+* In practice, $\sigma$ is replaced by its estimate, $\hat \sigma^2 = \frac{1}{n-2}\sum_{i=1}^n e_i^2$
+* It's probably not surprising that under iid Gaussian errors
+\[
+\frac{\hat \beta_j - \beta_j}{\hat \sigma_{\hat \beta_j}}
+\]
+follows a $t$ distribution with $n-2$ degrees of freedom and a normal distribution for large $n$.
+* This can be used to create confidence intervals and perform hypothesis tests.
+  
+###Inference coding example
+```{r}
+data(diamond)
+y <- diamond$price; 
+x <- diamond$carat; 
+n <- length(y)
+beta1 <- cor(y, x) * sd(y) / sd(x)
+beta0 <- mean(y) - beta1 * mean(x)
+e <- y - beta0 - beta1 * x
+#Estimate of standard deviation around the regression line
+sigma <- sqrt(sum(e^2) / (n-2)) 
+
+#Sums of square of x
+ssx <- sum((x - mean(x))^2)
+#Standard error of beta0 and beta1
+seBeta0 <- (1 / n + mean(x) ^ 2 / ssx) ^ .5 * sigma 
+seBeta1 <- sigma / sqrt(ssx)
+# Two t statistics. Null hypotheses are beta0 and beta1 are equal to zero
+tBeta0 <- beta0 / seBeta0; tBeta1 <- beta1 / seBeta1
+# Two p-values for each coeffs
+pBeta0 <- 2 * pt(abs(tBeta0), df = n - 2, lower.tail = FALSE)
+pBeta1 <- 2 * pt(abs(tBeta1), df = n - 2, lower.tail = FALSE)
+#Summary table
+coefTable <- rbind(c(beta0, seBeta0, tBeta0, pBeta0), c(beta1, seBeta1, tBeta1, pBeta1))
+colnames(coefTable) <- c("Estimate", "Std. Error", "t value", "P(>|t|)")
+rownames(coefTable) <- c("(Intercept)", "x")
+coefTable
+fit <- lm(y~x)
+summary(fit)$coefficients
+```
+  
+###Inference confidence interval of coefficients
+```{r}
+sumCoef <- summary(fit)$coefficients
+#CI of intercept
+sumCoef[1,1] + c(-1,1)*qt(0.975, df=fit$df)*sumCoef[1,2]
+#CI of slope
+sumCoef[2,1] + c(-1,1)*qt(0.975, df=fit$df)*sumCoef[2,2]
+```
+The interpretation of CI of slope is "with 95% confidence, we estimate that a 0.1 carat increase in diamond size is going to result in a 356 to 389 increase in price in, in Singapore dollars. 
+
+###Prediction of outcomes
+
+* The estimate for prediction at point $x_0$ is \[\hat{\beta_0}+\hat{\beta_1}x_0\]
+* A standard error is needed to create a prediction interval.
+* There's a distinction between intervals for the regression line at point $x_0$ and the prediction of what a $y$ would be
+  at point $x_0$. 
+* Line at $x_0$ SE, $\hat \sigma\sqrt{\frac{1}{n} +  \frac{(x_0 - \bar X)^2}{\sum_{i=1}^n (X_i - \bar X)^2}}$
+* Prediction interval SE at $x_0$, $\hat \sigma\sqrt{1 + \frac{1}{n} + \frac{(x_0 - \bar X)^2}{\sum_{i=1}^n (X_i - \bar X)^2}}$
+```{r, fig.height=5, fig.width==5}
+newx = data.frame(x = seq(min(x), max(x), length = 100))
+p1 = data.frame(predict(fit, newdata= newx,interval = ("confidence")))
+p2 = data.frame(predict(fit, newdata = newx,interval = ("prediction")))
+p1$interval = "confidence"
+p2$interval = "prediction"
+p1$x = newx$x
+p2$x = newx$x
+dat = rbind(p1, p2)
+names(dat)[1] = "y"
+g <- ggplot(dat, aes(x = x, y = y))
+g <- g + geom_ribbon(aes(ymin = lwr, ymax = upr, fill = interval), alpha = 0.2) 
+g <- g + geom_line()
+g <- g + geom_point(data = data.frame(x = x, y=y), aes(x = x, y = y), size = 4)
+g
+```
+  
+As plot demonstrates, prediction interval is always larger than confidence interval. Also both of the intervals get narrower toward the center of the data cloud and then get wider as they head out to the tails. We are more confident in our predictions, when the predictor variable is closer to the mean of the X's

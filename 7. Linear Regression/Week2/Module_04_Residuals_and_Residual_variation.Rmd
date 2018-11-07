@@ -1,0 +1,194 @@
+---
+title: "Residuals"
+author: "Katherine Shim"
+date: "October 28, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(UsingR)
+library(ggplot2)
+require(stats)
+require(graphics)
+```
+
+##Residuals
+
+* Model $Y_i = \beta_0+\beta_1 X_i +\epsilon_i$ where $\epsilon_i ~ N(0, \sigma^2)$
+* Observed outcome $i$ is $Y_i$ at predictor value $X_i$
+* Predicted outcome $\hat{Y_i}$ at predictor value $X_i$ is \[\hat{Y_i} = \hat{\beta_0}+\hat{\beta_1}X_i\]
+* Residual is \[e_i = Y_i-\hat{Y_i}\] the vertical distance between the observed adata point and regression line.
+* Least squares minimizes $\sum_{i=1}^{n}{e_i}^2$
+* The $e_i$ can be thought as estimates of the $\epsilon_i$
+
+###Residual properties
+
+* $E[e_i] = 0$
+* If an intercept is included, $\sum_{i=1}^{n} e_i = 0$
+* If a regressor variable, $X_i$, is included in the model $\sum_{i=1}^n e_i X_i = 0$. 
+* Residuals are useful for investigating poor model fit.
+* Positive residuals are above the line, negative residuals are below.
+* Residuals can be thought of as the outcome $Y$ with the linear association of the predictor $X$ removed.
+* One differentiates residual variation (variation after removing the predictor) from systematic variation (variation explained by the regression model).
+
+###Diamond example
+```{r}
+data(diamond)
+y <- diamond$price
+x <- diamond$carat
+n <- length(y)
+fit <- lm(y~x)
+#Residuals
+e <- resid(fit)
+yhat <- predict(fit)
+max(abs(e-(y-yhat)))
+max(abs(e-(y-coef(fit)[1]-coef(fit)[2]*x)))
+#Sum of residuals is zero
+sum(e)
+#Sum of e*x is zero
+sum(e*x)
+#plot regression line
+plot(diamond$carat, diamond$price,
+     xlab="Mass (carats",
+     ylab = "Price (Sin $)",
+     bg = "lightblue",
+     col = "black",
+     cex=1.1,
+     pch=21,
+     frame=FALSE)
+abline(fit, lwd=2)
+for (i in 1:n)
+  lines(c(x[i],x[i]), c(y[i],yhat[i]), col="red", lwd=2)
+```
+  
+Red lines are the residuals. However this plot is not appropriate to analyze residual variation.  
+```{r}
+#plot regression line
+plot(x, e,
+     xlab="Mass (carats",
+     ylab = "Price (Sin $)",
+     bg = "lightblue",
+     col = "black",
+     cex=1.1,
+     pch=21,
+     frame=FALSE
+     )
+abline(h=0, lwd=2)
+for (i in 1:n)
+  lines(c(x[i],x[i]), c(e[i],0), col="red", lwd=2)
+```
+  
+When you look at residual plot, you should look for any form of pattern. Diamond residual plots seems to indicate a good fit. No obvious pattern is spotted.
+
+###Usage of residual plot
+```{r}
+x<-runif(100, -3, 3)
+y <- x + sin(x) + rnorm(100, sd=0.2)
+g <- ggplot(data.frame(x=x, y=y), aes(x=x, y=y))
+g <- g + geom_smooth(method="lm", colour="black")
+g <- g + geom_point(size=7, colour="black", alpha=0.4)
+g <- g + geom_point(size=5, colour="red", alpha=0.4)
+g
+```
+  
+We can see that the linear regression is not picking up the non-linear sin(x) term.
+```{r}
+g <- ggplot(data.frame(x=x, y=resid(lm(y~x))), aes(x=x, y=y))
+g <- g + geom_hline(yintercept=0, size=2)
+g <- g + geom_point(size=7, colour="black", alpha=0.4)
+g <- g + geom_point(size=5, colour="red", alpha=0.4)
+g <- g + xlab("X") + ylab("Residual")
+g
+```
+  
+The residual pattern is showing a pattern which indicate the poor model fit.
+
+
+###Heteroskedasticity
+```{r}
+x<-runif(100, 0, 6)
+y <- x + rnorm(100, mean=0, sd=0.001*x)
+g <- ggplot(data.frame(x=x, y=y), aes(x=x, y=y))
+g <- g + geom_smooth(method="lm", colour="black")
+g <- g + geom_point(size=7, colour="black", alpha=0.4)
+g <- g + geom_point(size=5, colour="red", alpha=0.4)
+g
+```
+  
+The model fit looks very good! Now let's look at the residual plot.
+```{r}
+g <- ggplot(data.frame(x=x, y=resid(lm(y~x))), aes(x=x, y=y))
+g <- g + geom_hline(yintercept=0, size=2)
+g <- g + geom_point(size=7, colour="black", alpha=0.4)
+g <- g + geom_point(size=5, colour="red", alpha=0.4)
+g <- g + xlab("X") + ylab("Residual")
+g
+```
+  
+We can observe higher variability in residual as x gets larger. This is called heteroskedasticity.
+
+###More on diamond data and residual plot
+```{r, echo = FALSE, fig.height=4.5, fig.width=4.5}
+#Just fitting intercept. The residual is the variability around the average diamond price value.
+e <- c(resid(lm(price ~ 1, data = diamond)),
+#Add carat as a predictor variable. So this residual is variability around the regression line
+      resid(lm(price ~ carat, data = diamond)))
+fit <- factor(c(rep("Itc", nrow(diamond)),
+               rep("Itc, slope", nrow(diamond))))
+g <- ggplot(data.frame(e = e, fit = fit), aes(y = e, x = fit, fill = fit))
+g <- g + geom_dotplot(binaxis = "y", size = 2, stackdir = "center", binwidth = 20)
+g <- g + xlab("Fitting approach")
+g <- g + ylab("Residual price")
+g
+```
+  
+The left dotplot is the variation around the average diamond price. The right dotplot is the variation around the linear regression line. As we can see the right side variation is a lot smaller. This is because the carat predictor variable explained some of the price variation. The variation on the right is the left over residual variation after accounting for carat.
+  
+###Residual variation
+Residual variation is the variation around the regression line.
+
+* Model $Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$ where $\epsilon_i \sim N(0, \sigma^2)$.
+* The ML estimate of $\sigma^2$ is $\frac{1}{n}\sum_{i=1}^n e_i^2$,
+the average squared residual. 
+* Most people use
+  \[
+  \hat \sigma^2 = \frac{1}{n-2}\sum_{i=1}^n e_i^2.
+  \]
+* The $n-2$ instead of $n$ is so that $E[\hat \sigma^2] = \sigma^2$
+```{r}
+y <- diamond$price
+x <- diamond$carat
+n <- length(y)
+fit <- lm(y~x)
+#Residual variation
+summary(fit)$sigma
+sqrt(sum(resid(fit)^2)/(n-2))
+```
+
+###Variation
+
+* The total variability in our response is the variability around an intercept
+$\sum_{i=1}^n (Y_i - \bar Y)^2$
+* The regression variability is the variability that is explained by adding the
+predictor $\sum_{i=1}^n  (\hat Y_i - \bar Y)^2$
+* The error variability is what's leftover around the regression line
+$\sum_{i=1}^n (Y_i - \hat Y_i)^2$
+* 
+\[
+\sum_{i=1}^n (Y_i - \bar Y)^2 
+= \sum_{i=1}^n (Y_i - \hat Y_i)^2 + \sum_{i=1}^n  (\hat Y_i - \bar Y)^2 
+\]  
+
+###R squared
+R squared is the percentage of the total variability that is explained by the linear relationship with the predictor
+\[
+R^2 = \frac{\sum_{i=1}^n  (\hat Y_i - \bar Y)^2}{\sum_{i=1}^n (Y_i - \bar Y)^2}
+\]
+
+* $0 \leq R^2 \leq 1$
+* $R^2$ is the sample correlation squared as R is the sample correlation between the predictor and the outcome
+* $R^2$ can be a misleading summary of model fit. 
+  + Deleting data can inflate $R^2$.
+  + Adding terms to a regression model always increases $R^2$.
+

@@ -122,8 +122,6 @@ $(document).ready(function () {
 </div>
 
 
-<div id="linear-least-squares" class="section level2">
-<h2>Linear least squares</h2>
 <div id="background" class="section level3">
 <h3>Background</h3>
 <ul>
@@ -146,6 +144,43 @@ $(document).ready(function () {
 </ul></li>
 </ul>
 </div>
+<div id="linear-least-squares" class="section level3">
+<h3>Linear Least Squares</h3>
+<p>Recall Galton dataset that has children and parents heights. Let’s say we want to use parents’ heights to explain children’s heights.</p>
+<ul>
+<li>Let <span class="math inline">\(Y_i\)</span> be the <span class="math inline">\(i^{th}\)</span> child’s height and <span class="math inline">\(X_i\)</span> be the <span class="math inline">\(i^{th}\)</span> parents’ heights.</li>
+<li>Consider finding the best line
+<ul>
+<li>Child’s height = <span class="math inline">\(\beta_0\)</span> + Parent’s Height<span class="math inline">\(\beta_1\)</span></li>
+</ul></li>
+<li>Use least squares <span class="math display">\[\sum_{i=1}^{n}\{Y_i-(\beta_0+\beta_1 X_i)\}^2\]</span></li>
+<li><strong>Results</strong>
+<ul>
+<li>The least squares model fit to the line <span class="math inline">\(Y=\beta_0+\beta_1 X\)</span> through the data pairs <span class="math inline">\((X_i, Y_i)\)</span> with <span class="math inline">\(Y_i\)</span> as the outcome obtains the line <span class="math inline">\(Y=\hat{\beta_0}+\hat{\beta_1}X\)</span> where <span class="math display">\[\hat{\beta_1} = Cor(Y,X)\frac{Sd(Y)}{Sd(X)}, \hat{\beta_0}=\overline{Y}-\hat{\beta_1}\overline{X}\]</span></li>
+<li><span class="math inline">\(\hat{\beta_1}\)</span> has the units of <span class="math inline">\(Y/X\)</span>, and <span class="math inline">\(\hat{\beta_0}\)</span> has the units of <span class="math inline">\(Y\)</span>.</li>
+<li>The line passes through the point <span class="math inline">\((\overline{X},\overline{Y})\)</span></li>
+<li>The slope of the regression line with X as the outcome and Y as the predictor is <span class="math inline">\(Cor(Y,X)Sd(X)/Sd(Y)\)</span>.</li>
+<li>The slope is the same one you would get if you centered the data, <span class="math inline">\((X_i-\overline{X}, Y_i-\overline{Y})\)</span>, and did regression through the origin.</li>
+<li>If you normalized the data <span class="math inline">\({\frac{X_i-\overline{X}}{Sd(X)},\frac{Y_i-\overline{Y}}{Sd(Y)}}\)</span>, the slope is <span class="math inline">\(Cor(Y,X)\)</span></li>
+</ul></li>
+<li>Coding example:</li>
+</ul>
+<pre class="r"><code>data(galton)
+y &lt;- galton$child
+x &lt;- galton$parent
+beta1 &lt;- cor(y, x)*sd(x)/sd(y)
+beta0 &lt;- mean(y) -beta1*mean(x)
+rbind(c(beta0, beta1), coef(lm(x~y)))</code></pre>
+<pre><code>##      (Intercept)         y
+## [1,]    45.84408 0.3256475
+## [2,]    46.13535 0.3256475</code></pre>
+<pre class="r"><code># Let's check if regresion through the origin yield an equivalent slope
+yc &lt;- y - mean(y)
+xc &lt;- x - mean(x)
+beta1 &lt;- sum(yc*xc)/sum(xc^2)
+c(beta1, coef(lm(y~x))[2])</code></pre>
+<pre><code>##                   x 
+## 0.6462906 0.6462906</code></pre>
 </div>
 
 
