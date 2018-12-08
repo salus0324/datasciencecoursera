@@ -1,0 +1,58 @@
+---
+title: "Practical ML Course Project"
+author: "Katherine Shim"
+date: "December 7, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(caret)
+library(formattable)
+library(data.table)
+training <- data.frame(read.csv("pml-training.csv", header = TRUE,na.strings=c("", "NA")))
+testing <- data.frame(read.csv("pml-testing.csv", header=TRUE,na.strings=c("", "NA")))
+```
+## Executive Summary
+The goal of this study is to build a prediction model that can predict the classe of activity based on other data and project the out-of-sample error. This paper explains the data processing, model construction and prediction procedure that was use to make prediction on the testing dataset.
+
+## Data processing
+The first step of this model building is to understand the data. During initial data exploratory analysis. I realized that some of the columns have many NA values. I decided to exclude columns that has more than 90% of NA values. Also I will exclude first few columns that should not affect the classe such as row numbers and student names. We will do same post processing on testing dataset.
+```{r}
+training <- training[c(-1, -2,-3,-4,-5,-6,-7)]
+testing <- testing[c(-1, -2,-3,-4,-5,-6,-7,-dim(testing[1]))]
+na_count <-data.frame(sapply(training, function(y) sum(length(which(is.na(y))))/nrow(training)))
+names(na_count) <- "na_perc"
+na_count$name<-row.names(na_count)
+keep_columns <- na_count[which(na_count$na_perc<0.9), ]
+training <- training[,c(keep_columns$name)]
+keep_columns <- keep_columns[1:(nrow(keep_columns)-1),]
+testing <- testing[,c(keep_columns$name)]
+```
+
+## Model building
+For this classification problem, we will use gradient boosting method. Gradient boosting take many weak predictors and add them up to create a strong predictor. For this model building I will use `gbm` method in `caret` package. Furthermore, in order to prevent overfitting I will perform cross validation with resampling.
+```{r}
+modFit <- train(classe~., data=training, method="gbm", verbose=FALSE, trControl=trainControl(method="cv", number=10, allowParallel=T))
+```
+
+### Model review
+First we will estimate the out of sample error by using `confusionMatrix` in `caret` package.
+```{r}
+confusionMatrix(training$classe, predict(modFit, training))
+```
+According to the confusionMatrix, the in sample error of the model is .... The in sample error of the cross validated model is a good estimate of the out of sample error. Since in sample error rate is quite low, I believe that prediction on the test data will have high accuracy as well.
+
+
+### Prediction on testing data
+Now we will make predictions on testing ste.
+```{r}
+Prediction <- data.frame(predict(modFit, testing))
+names(Prediction) <- "Prediction"
+Prediction
+```
+
+
+
+
