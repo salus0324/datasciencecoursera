@@ -1,0 +1,55 @@
+---
+title: "Boosting"
+author: "Katherine Shim"
+date: "December 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(caret)
+library(ISLR)
+library(ggplot2)
+```
+
+###Basic idea
+
+**Key idea:**
+
+1. Take lots of weak predictors
+2. Weight them and add them up
+3. Get a stronger predictor
+  
+**Method:**
+
+1. Start with a set of classifiers $h_1,...,h_k$
+    + Examples: all possible trees, all possible regression models, all possible cutoffs.
+2. Create a classifier that combines classification functions: $f(x)=sgn(\sum_{t=1}^{T}\alpha_t h_t(x))$
+    + $\alpha_t$ is weight
+    + $h_t(x)$ is classifier
+    + Goal is to minimize error on training set
+    + Iterative, select one $h$ at each step
+    + Calculate weights based on errors
+    + Upweight missed classifications and select next $h$
+
+### Boosting in R
+
+* Boosting can be used with any subset of classifiers
+* One large subclass is gradient boosting
+* R has multiple boosting libraries. Difference include the choice of basic classification functions and combination rules.
+    + `gbm` - boosting with trees
+    + `mboost` - model baesd boosting
+    + `ada` - statistical boosting based on additive logistic regression
+    + `gamBoost` - for boosting generalized additive models.
+
+### Wage example
+```{r}
+data(Wage)
+Wage <- subset(Wage, select=-c(logwage))
+inTrain <- createDataPartition(y=Wage$wage, p=0.7, list=FALSE)
+training <- Wage[inTrain,]
+testing <- Wage[-inTrain,]
+modFit <- train(wage~., method="gbm", data=training, verbose=FALSE)
+qplot(predict(modFit, testing),wage,data=testing)
+```
+    

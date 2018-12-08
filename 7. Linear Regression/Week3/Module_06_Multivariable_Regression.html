@@ -187,14 +187,14 @@ y &lt;- 1 + x + x2 + x3 + rnorm(n, sd = .1)
 ey &lt;- resid(lm(y ~ x2 + x3))
 ex &lt;- resid(lm(x ~ x2 + x3))
 sum(ey * ex) / sum(ex ^ 2)</code></pre>
-<pre><code>## [1] 0.9892626</code></pre>
+<pre><code>## [1] 0.9967502</code></pre>
 <pre class="r"><code># -1 is to get rid of the intercept
 coef(lm(ey ~ ex - 1))</code></pre>
 <pre><code>##        ex 
-## 0.9892626</code></pre>
+## 0.9967502</code></pre>
 <pre class="r"><code>coef(lm(y ~ x + x2 + x3)) </code></pre>
 <pre><code>## (Intercept)           x          x2          x3 
-##   0.9921800   0.9892626   1.0076439   0.9910016</code></pre>
+##   0.9957765   0.9967502   0.9757639   0.9984847</code></pre>
 </div>
 <div id="summary" class="section level3">
 <h3>Summary</h3>
@@ -207,9 +207,6 @@ coef(lm(ey ~ ex - 1))</code></pre>
 <li>Coefficients have standard errors, <span class="math inline">\(\hat \sigma_{\hat \beta_k}\)</span>, and <span class="math inline">\(\frac{\hat \beta_k - \beta_k}{\hat \sigma_{\hat \beta_k}}\)</span> follows a <span class="math inline">\(T\)</span> distribution with <span class="math inline">\(n-p\)</span> degrees of freedom.</li>
 <li>Predicted responses have standard errors and we can calculate prediction intervals.</li>
 </ul>
-</div>
-<div id="multivariate-regression-example" class="section level3">
-<h3>Multivariate regression example</h3>
 </div>
 
 

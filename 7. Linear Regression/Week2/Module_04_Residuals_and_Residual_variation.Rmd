@@ -15,10 +15,10 @@ require(graphics)
 
 ##Residuals
 
-* Model $Y_i = \beta_0+\beta_1 X_i +\epsilon_i$ where $\epsilon_i ~ N(0, \sigma^2)$
+* Model $Y_i = \beta_0+\beta_1 X_i +\epsilon_i$ where $\epsilon_i \sim N(0, \sigma^2)$
 * Observed outcome $i$ is $Y_i$ at predictor value $X_i$
 * Predicted outcome $\hat{Y_i}$ at predictor value $X_i$ is \[\hat{Y_i} = \hat{\beta_0}+\hat{\beta_1}X_i\]
-* Residual is \[e_i = Y_i-\hat{Y_i}\] the vertical distance between the observed adata point and regression line.
+* Residual is \[e_i = Y_i-\hat{Y_i}\] the vertical distance between the observed data point and regression line.
 * Least squares minimizes $\sum_{i=1}^{n}{e_i}^2$
 * The $e_i$ can be thought as estimates of the $\epsilon_i$
 

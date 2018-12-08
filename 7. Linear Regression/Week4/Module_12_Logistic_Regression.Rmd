@@ -1,0 +1,97 @@
+---
+title: "Logistic Regression"
+author: "Katherine Shim"
+date: "November 8, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### GLM, binary data
+
+* Outcome is 0 or 1, binary or Bernoulli or 0/1 outcomes
+* Collection of exchangeable binary outcomes for the same covariate data are called binomial outcomes.
+
+### Motivation example
+Ravens Data:
+\[ RW_i = b_0 + b_1 RS_i + e_i \]
+* $RW_i$ - 1 if a Ravens win,  0 if not
+* $RS_i$ - Number of points Ravens scored
+* $b_0$ - probability of a Ravens win if they score 0 points
+* $b_1$ - increase in probability of a Ravens win for each additional point
+* $e_i$ - residual variation due 
+
+###Odds
+\[Odd=\frac{p}{1-p}\]
+**Binary Outcome 0/1**
+\[RW_i\]
+
+**Probability (0,1)**
+\[\rm{Pr}(RW_i | RS_i, b_0, b_1 )\]
+
+**Odds $(0,\infty)$**
+\[\frac{\rm{Pr}(RW_i | RS_i, b_0, b_1 )}{1-\rm{Pr}(RW_i | RS_i, b_0, b_1)}\]
+
+**Log odds $(-\infty,\infty)$**
+\[\log\left(\frac{\rm{Pr}(RW_i | RS_i, b_0, b_1 )}{1-\rm{Pr}(RW_i | RS_i, b_0, b_1)}\right)\]
+
+Logistic regression will model Log odds
+
+## Linear vs. logistic regression
+Linear
+\[RW_i = b_0 + b_1 RS_i + e_i\]
+or
+\[E[RW_i | RS_i, b_0, b_1] = b_0 + b_1 RS_i\]
+
+Logistic
+\[ \rm{Pr}(RW_i | RS_i, b_0, b_1) = \frac{\exp(b_0 + b_1 RS_i)}{1 + \exp(b_0 + b_1 RS_i)}\]
+or
+\[ \log\left(\frac{\rm{Pr}(RW_i | RS_i, b_0, b_1 )}{1-\rm{Pr}(RW_i | RS_i, b_0, b_1)}\right) = b_0 + b_1 RS_i \]
+
+###Interpreting logistic regression
+\[ \log\left(\frac{\rm{Pr}(RW_i | RS_i, b_0, b_1 )}{1-\rm{Pr}(RW_i | RS_i, b_0, b_1)}\right) = b_0 + b_1 RS_i \]
+
+* $b_0$ - Log odds of a Ravens win if they score zero points
+* $\frac{e^{b_0}}{1+e^{b_0}}$ is probability of ravens win if they score zero points.
+* $b_1$ - Log odds ratio of win probability for each point scored (compared to zero points)
+* $\exp(b_1)$ - Odds ratio of win probability for each point scored (compared to zero points)
+
+### Odds
+
+* Imagine that you are playing a game where you flip a coin with success probability $p$.
+* If it comes up heads, you win $X$. If it comes up tails, you lose $Y$.
+* What should we set $X$ and $Y$ for the game to be fair?
+\[E[earnings] = X*p-Y(1-p)=0\]
+* Implies
+\[\frac{Y}{X}=\frac{p}{1-p}\]
+* The odds can be said as "How much should you be willing to pay for p probability of winning a dollar".
+    + If p>0.5, you have to pay more if you lose than you get if you win.
+    + If p<0.5, you have to pay less if you lose than you get if you win.
+
+## Interpreting Odds Ratios
+
+* Not probabilities 
+* Odds ratio of 1 = no difference in odds
+* Log odds ratio of 0 = no difference in odds
+* Odds ratio < 0.5 or > 2 commonly a "moderate effect"
+* Relative risk $\frac{\rm{Pr}(RW_i | RS_i = 10)}{\rm{Pr}(RW_i | RS_i = 0)}$ often easier to interpret, harder to estimate
+* For small probabilities RR $\approx$ OR but they are not the same!
+
+###GLM - poission/log-linear
+\[ \log\left(E[NH_i | JD_i, b_0, b_1]\right) = b_0 + b_1 JD_i \]
+or
+\[ E[NH_i | JD_i, b_0, b_1] = \exp\left(b_0 + b_1 JD_i\right) \]
+In GLMs with possion distribution, we don't log the outcome itself. Instead, we log the mean of the outcome. 
+
+## Multiplicative differences
+\[ E[NH_i | JD_i, b_0, b_1] = \exp\left(b_0 + b_1 JD_i\right) \]
+
+\[E[NH_i | JD_i, b_0, b_1] = \exp\left(b_0 \right)\exp\left(b_1 JD_i\right)\]
+
+If $JD_i$ is increased by one unit, $E[NH_i | JD_i, b_0, b_1]$ is multiplied by $\exp\left(b_1\right)$
+
+---
+
+ 

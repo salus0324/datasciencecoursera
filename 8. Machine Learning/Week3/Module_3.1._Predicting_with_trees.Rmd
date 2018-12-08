@@ -1,0 +1,103 @@
+---
+title: "Predicting with trees"
+author: "Katherine Shim"
+date: "December 1, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(caret)
+library(ggplot2)
+library(rattle)
+```
+
+###Key ideas
+
+* Iteratively split variables into groups
+* Evaluate "homogeneity" within each group
+* Split again if necessary
+* Pros:
+    + Easy to interpret
+    + Better performance in nonlinear settings
+* Cons:
+    + Without pruning/cross-validation can lead to overfitting
+    + Harder to estimate uncertainty
+    + Results may be variable
+
+###Basic Algorithm
+
+1. Start with all variables in one group
+2. Find the variable/split that best separates the outcomes
+3. Divide the data into two groups ("leaves") on that split ("node")
+4. Within each split, find the best variable/split that separates the outcomes
+5. Continue until the groups are too small or sufficiently "pure"
+
+###Measures of impurity
+\[\hat{p}_{mk} = \frac{1}{N_m}\sum_{x_i\;in\; Leaf\;m}1(y_i=k)\]
+**Misclassification Error:**
+\[1-\hat{p}_{mk(m)}; k(m) = most\;common\;k\]
+
+* 0 = perfect purity. There zero misclassification.
+* 0.5 = no purity. The classification is as good as coin flipping
+
+**Gini index:**
+\[\sum_{k \neq k'} \hat{p}_{mk} \times \hat{p}_{mk'} = \sum_{k=1}^K \hat{p}_{mk}(1-\hat{p}_{mk}) = 1 - \sum_{k=1}^K p_{mk}^2\]
+
+* 0 = perfect purity. There zero misclassification.
+* 0.5 = no purity. The classification is as good as coin flipping
+
+**Deviance:**
+\[-\sum_{k=1}^K \hat{p}_{mk} \log_e(\hat{p}_{mk})\]
+
+**Information Gain:**
+\[-\sum_{k=1}^K \hat{p}_{mk} \log_2(\hat{p}_{mk}) \]
+* 0 = perfect purity. There zero misclassification.
+* 1 = no purity. The classification is as good as coin flipping
+
+###Impurity example
+
+1. Case 1: One out of 16 data is misclassified
+
+    * Misclassifcation: $1/16=0.06$
+    * Gini : $1-[(1/16)^2+(15/16)^2]=0.12$
+    * Information: $-[1/16*log2(1/16)+15/16*log2(15/16)]=0.34$
+2. Case 2: 8 out of 16 data is misclassified
+
+    * Misclassifcation: $8/16=0.5$
+    * Gini : $1-[(8/16)^2+(8/16)^2]=0.5$
+    * Information: $-[8/16*log2(8/16)+8/16*log2(8/16)]=1$
+    
+###Classification example
+Iris data has three species (setosa, versicolor, virginica) and there are 50 data for each species.
+```{r}
+data(iris)
+names(iris)
+table(iris$Species)
+#Create training and test sets
+inTrain <- createDataPartition(y=iris$Species, p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+dim(training); dim(testing)
+# Observe the data to classifiy
+qplot(Petal.Width, Sepal.Width, colour=Species, data=training)
+#Iris petal widths/sepal width
+modFit <- train(Species ~., method="rpart", data=training)
+print(modFit$finalModel)
+#Plot the final Model tree
+plot(modFit$finalModel, uniform=TRUE, main="Classification Tree")
+text(modFit$finalModel, use.n=TRUE, all=TRUE, cex=0.8)
+# Plot prettier tree
+fancyRpartPlot(modFit$finalModel)
+```
+
+###Predicting new values
+```{r}
+predict(modFit, newdata=testing)
+```
+
+###Notes and further resources
+* Classification trees are non-linear models
+    + They use interactions between variables
+    + Data transformations may be less important
+    + Trees can also be used for regression problems (continuous outcomes). Use RMSE to measure impurity.

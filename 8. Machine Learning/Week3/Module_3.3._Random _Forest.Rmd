@@ -1,0 +1,64 @@
+---
+title: "Random Forest"
+author: "Katherine Shim"
+date: "December 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(caret)
+library(ElemStatLearn)
+library(ggplot2)
+library(randomForest)
+```
+
+###Random Forests
+
+1. Bootstrap samples
+2. At each split, boostrap variables
+3. Grow multiple trees and vote
+  
+Pros:
+1. Accuracy
+  
+Cons:
+1. Speed
+2. Interpretability
+3. Overfitting  
+
+Forest output probability: Average the prediction over multiple trees
+\[p(c|v)=\frac{1}{T}\sum_{t}^{T}P_t(c|v)\]
+
+###Example
+```{r}
+data(iris)
+inTrain <- createDataPartition(y=iris$Species, p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+modFit <- train(Species~., data=training, method="rf", prox=TRUE)
+modFit
+#Get the second tree of the finalModel
+getTree(modFit$finalModel, k=2)
+```
+
+
+### Class "centers"
+Get centers of the predicted values.
+```{r}
+data(iris)
+irisP <- classCenter(training[,c(3,4)], training$Species, modFit$finalModel$prox)
+irisP <- as.data.frame(irisP)
+irisP$Species <-rownames(irisP)
+p <- qplot(Petal.Width, Petal.Length, col=Species, data=training)
+p+geom_point(aes(x=Petal.Width, y=Petal.Length, col=Species), size=5, shape=4, data=irisP)
+```
+
+###Predicting new values
+```{r}
+pred <- predict(modFit, testing)
+testing$predRight <- pred==testing$Species
+table(pred,testing$Species)
+###Predicting new values
+qplot(Petal.Width, Petal.Length, colour=predRight, data=testing, main="newdata Predictions")
+```

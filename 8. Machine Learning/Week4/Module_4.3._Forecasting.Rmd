@@ -1,0 +1,79 @@
+---
+title: "Forecasting"
+author: "Katherine Shim"
+date: "December 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(quantmod)
+library(forecast)
+```
+
+### What is different?
+
+* Data are dependent over time
+* Specific pattern types
+  * Trends - long term increase or decrease
+  * Seasonal patterns - patterns related to time of week, month, year, etc.
+  * Cycles - patterns that rise and fall periodically
+* Subsampling into training/test is more complicated
+* Similar issues arise in spatial data 
+  * Dependency between nearby observations
+  * Location specific effects
+* Typically goal is to predict one or more observations into the future. 
+* All standard predictions can be used (with caution!)
+
+### Example - Google stock price
+```{r}
+from.dat <- as.Date("01/01/08", format="%m/%d/%y")
+to.dat <- as.Date("12/31/13", format="%m/%d/%y")
+getSymbols("GOOG", src="yahoo", from = from.dat, to = to.dat)
+head(GOOG)
+```
+
+### Summarize monthly and store as time series
+
+```{r}
+mGoog <- to.monthly(GOOG)
+# Get opening price
+googOpen <- Op(mGoog)
+# Create a time series object
+ts1 <- ts(googOpen,frequency=12)
+plot(ts1,xlab="Years+1", ylab="GOOG")
+```
+
+### Decompose a time series into parts
+
+```{r}
+plot(decompose(ts1),xlab="Years+1")
+```
+
+###Training and test sets
+```{r}
+ts1Train <- window(ts1,start=1,end=5)
+ts1Test <- window(ts1,start=5,end=(7-0.01))
+ts1Train
+```
+
+### Simple moving average
+\[ Y_{t}=\frac{1}{2*k+1}\sum_{j=-k}^k {y_{t+j}}\]
+
+```{rs}
+plot(ts1Train)
+lines(ma(ts1Train,order=3),col="red")
+```
+
+### Exponential smoothing
+\[\hat{y}_{t+1} = \alpha y_t + (1-\alpha)\hat{y}_{t-1}\]
+The data points near to current time has heavier weight than the ones further back.
+```{r}
+ets1 <- ets(ts1Train,model="MMM")
+fcast <- forecast(ets1)
+# The shade on the plot is the prediction bound
+plot(fcast); lines(ts1Test,col="red")
+#Get the accuracy
+accuracy(fcast, ts1Test)
+```
+

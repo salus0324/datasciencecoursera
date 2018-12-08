@@ -26,7 +26,7 @@ library(ggplot2)
 \[Y_i = \beta_0 + \beta_1 X_i + \epsilon_i
 = \beta_0 + a \beta_1 + \beta_1 (X_i - a) + \epsilon_i
 = \tilde \beta_0 + \beta_1 (X_i - a) + \epsilon_i \]
-So, shifting your $X$ values by balue a changes the intercept, but not the slope
+So, shifting your $X$ values by value $a$ changes the intercept, but not the slope
 * Often $a$ is set to $\overline{X}$ so that the intercept is interpretted as the expected response at the average $X$ value.  
 
 **Slope, $\beta_1$**  

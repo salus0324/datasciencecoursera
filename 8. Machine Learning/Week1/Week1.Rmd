@@ -1,0 +1,263 @@
+---
+title: "Practical ML - Week1"
+author: "Katherine Shim"
+date: "November 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kernlab)
+data(spam)
+```
+
+### What is prediction?
+
+* Probability/Sampling: use probability and sampling to choose training set from the data that you want to predict about.
+* Training Set: Use the characteristics of the training set to formulate prediction function.
+* Prediction function: prediction function will make a prediction on unknown data.
+
+### Components of a predictor
+
+1. Question: What are you trying to predcit and what are you trying to predict with?
+2. Input data: Collect the best input data you can use to predict.
+3. Features: Use measured characteristics or use computations to build features that might be useful for predicting the outcome.
+4. Algorithm: Use the ML algorithms such as random forest or decision trees.
+5. Parameters: Estimate the paraemters of those algorithms and use those parameters to apply the algorithm to a new data set.
+6. Evaluation: Evaluate the algorithm on that new data.
+
+###SPAM example
+
+* Qeustion: Can I use quantitative characteristics of the emails to classify them as SPAM/HAM?
+* Input data: `data(spam)` in R package, `kernlab`.
+* Features: Frequency of certain words
+```{r}
+plot(density(spam$your[spam$type=="nonspam"]),
+     col="blue", main="", xlab="Frequency of 'your'")
+lines(density(spam$your[spam$type=="spam"]), col="red")
+abline(v=0.5, col="black")
+```
+* Algorithm/Parameters: Find a value $C$. If frequency of 'your' > C, then predict as "spam". We will choose C as 0.5.
+* Evaluate:
+```{r}
+prediction <- ifelse(spam$your > 0.5, "spam", "nonspam")
+table(prediction, spam$type)/length(spam$type)
+```
+$Accuracy \approx 0.459+0.292=0.751$. Our prediction algorithm is about 75% accurate.
+
+### Relative order of importance.
+Question > Data > Features > Algorithms
+
+* Input data
+    1. May be easy or hard to collect.
+    2. Often more data > better models
+    3. The most important step.
+* Features
+    + ** Propertires of good features**
+    1. Lead to data compression
+    2. Retain relevant information
+    3. Are created based on expert application knowledge.
+    
+    + **Common mistake**
+    1. Trying to automate feature selection
+    2. Not paying attention to data-specific quirks.
+    3. Throwing away information unncessarily.
+
+###Issues to consider
+* Interpretable
+* Simple
+* Accurate
+* Scalable
+* Fast to train and test
+
+###Prediction is about accuracy tradeoffs
+* Interpretability versus accuracy.
+* Speed versus accuracy
+* Simplicity versus accuracy
+* Scalability versus accuracy
+
+###In and out of sample errors
+**In Sample Error**: The error rate you get on the same data set you used to build your predictor. Sometimes called resubstitution error.  
+**Out of Sample Error**: The error rate you get on a new data set. Sometimes called generalization error.  
+**Key ideas**
+    1. Out of sample error is what you care about.
+    2. In sample error < out of sample error
+    3. The reason for 2. is overfitting
+**Example**:
+```{r}
+set.seed(333)
+smallSpam <- spam[sample(dim(spam)[1], size=10),]
+spamLabel <- (smallSpam$type=="spam")*1+1
+plot(smallSpam$capitalAve, col=spamLabel)
+```
+**Prediction rule 1**: This rule will have 100% accuracy in sample
+  
+* capitalAve > 2.7 = "spam"
+* capitalAve < 2.4 = "nonspam"
+* capitalAve between 2.4 and 2.45 ="spam"
+* capitalAve between 2.45 and 2.7 = "nonspam"
+```{r}
+rule1 <- function(x){
+  prediction <- rep(NA, length(x))
+  prediction[x>2.7] <- "spam"
+  prediction[x<2.40] <- "nonspam"
+  prediction[x>=2.4 & x<=2.45] <- "spam"
+  prediction[x>2.45 & x<=2.70] <- "nonspam"
+  return(prediction)
+}
+table(rule1(smallSpam$capitalAve), smallSpam$type)
+```
+  
+**Prediction rule 2**: It wll miss one data.
+  
+* capitalAve > 2.8 = "spam"
+* capitalAve <= 2.8 = "nonspam"
+```{r}
+rule2 <- function(x){
+  prediction <- rep(NA, length(x))
+  prediction[x>2.8] <- "spam"
+  prediction[x<=2.8] <- "nonspam"
+  return(prediction)
+}
+table(rule2(smallSpam$capitalAve), smallSpam$type)
+```
+  
+Now we will evaluate both rules using the complete spam data.
+```{r}
+table(rule1(spam$capitalAve), spam$type)
+sum(rule1(spam$capitalAve)==spam$type)
+table(rule2(spam$capitalAve), spam$type)
+sum(rule2(spam$capitalAve)==spam$type)
+```
+  
+We can see rule 2 works better. This is because rule 1 is overfitting on the sample data.
+
+###Prediction study design
+1. Define your error rate
+2. Split data into: training, testing, validation (optional)
+3. On the training set, pick features: use crosss-validation.
+4. On the training set, pick prediction function: use cross-validation.
+5. If no validation, apply 1x to test set.
+6. If validation, apply to test set and refine. Then apply 1x to validation.
+
+###Avoid small sample sizes
+
+* Suppose you are predicting a binary outcome (e.g. disease/healthy, click on add/not click on add)
+* Probability of perfect classification is approximately, $(frac{1}{2})^n$
+    + $n=1$, 50% chance of 100% accuracy.
+    + $n=2$, 25% chance of 100% accuracy.
+    + $n=10$, 0.10% chance of 100% accuracy.
+
+###Rules of thumb for prediction study design
+
+* If you have a large sample size, 60% training, 20% test, and 20% validation
+* If you have a medium sample size, 60% training and 40% testing.
+* If you have a small sample size, do cross validation and report caveat of small sample size.
+* Set the test/validation set aside and don't look at it.
+* Randomly sample traiing and test.
+* Your data sets must reflect structure of the problem (e.g. for time series prediction, split train/test in time chunks)
+* All subsets should reflect as much diversity as possible
+
+###Types of errors
+* True positive (TP): correctly identified
+* False positive (FP): incorrectly identified
+* True negative (TN): correctly rejected
+* False negative (FN): incorrectly rejected
+
+###Key quantities
+
+* Sensitivity: Pr(+|D), TP/(TP+FN)
+* Specificity: Pr(-|xD), TN/(FP+TN)
+* Positive Predictive Value: Pr(D|+), TP/(TP+FP)
+* Negative Predictive Value: Pr(xD|-), TN/(FN+TN)
+* Accuracy: Pr(correct outcome), (TP+TN)/(TP+FP+FN+TN)
+
+###Example
+Assume that some disease has a 0.1% prevalence in the population. Assume we have a test kit for that disease that works with 99% sensitivity and 99% specificity. What is the probability of a person having a disease given the test result is positive, if we randomly select a subject from 
+
+* the general popualation?  
+Positive predictive value: TP/(TP+FP)=99/(99
++999)=0.09, 9%
+    
+    + Sensitivity = 99/(99+1)=99%
+    + Specificity = 98901/(999+98901)=99%
+    + Positive Predictive Value = 99/(99+999)=9%
+    + Negative Predictive Value = 98901/(1+98901)>99.9%
+    + Accuracy = (99+98901)/100000=99%
+    
+* a high risk sub population with 10% disease prevalence?
+    + Sensitivity = 9900/(9900+100)=99%
+    + Specificity = 89100/(900+89100)=99%
+    + Positive Predictive Value = 9900/(9900+900)=92%
+    + Negative Predictive Value = 89100/(100+89100)=99.9%
+    + Accuracy = (9900+89100)/100000=99%
+    
+###For continuous data
+**Mean squared error (MSE)**
+\[\frac{1}{n}\sum_{i=1}^{n}(Prediction_i-Truth_i)^2\]
+**Root mean squared error (RMSE)**
+\[\sqrt{\frac{1}{n}\sum_{i=1}^{n}(Prediction_i-Truth_i)^2}\]
+
+###Common error measures
+
+1. Mean squared error (or root mean squared error)
+    - Continuous data, sensitive to outliers
+2. Median absolute deviation
+    - Continuous data, often more robust to outliers
+3. Sensitivity
+    - If you want few missed positives
+4. Specificity
+    - If you want few negatives called positives
+5. Accuracy
+    - Weights false positives/negatives equally
+6. Concordance
+
+### Why ROC (Receiver Operating Characteristics)?
+
+* Used to measure the goodness of a prediction algorithms
+* In binary classification you are predicting one of two categories (e.g. Alive/dead)
+* However, predictions are often quantitative (e.g. Probability of being alive)
+* There for cutoff is very important and can affect your result (e.g. 80% as alive below as dead)
+
+###ROC curve
+* x-axis is False Positive
+* y-axis is True Positive
+* Points on the curve is the cutoff
+* This plot tells you probabilities of FP and TP with given cutoff point.
+* The algorith with higher area under the curve (AUC) is better.
+* AUC = 0.5 is random guessing
+* AUC = 1.0 is perfect classifier
+* In general AUC of above 0.8 considered good
+
+###Cross Validation
+
+1. Accuracy on the training set is optimistic
+2. A better estimate comes from an independent set (test set accuracy)
+3. But we can't use the test set when building the model or it becomes part of the training set.
+4. So we estimate the test set accuracy with the training set.
+  
+* Approach:
+    1. Use the training set
+    2. Split it into training/testing sets
+    3. Build a model on the training set
+    4. Evaluate on the test set
+    5. Repeat and average the estimated errors
+    6. Pick the method with lowest estimated errors
+* Used for:
+    1. Picking variables to include in a model
+    2. Picking the type of prediction function to use
+    3. Picking the parameters in the prediction function
+    4. Comparing different predictors
+* Split methods
+  1. Random subsampling: for each repetition randomly choose training/testing sets from the original training set.
+  2. K-fold: fold the original training set by k number of groups. Kth group becomes the testing group.
+  3. Leave one out: Use one data as a testing data  for each repetition.
+* Considerations
+  1. For time series data, data must be used in "chunks"
+  2. For k-fold cross validations
+    + Larger k = less bias, more variance
+    + Smaller k = more bias, less variance
+  3. Random sampling must be done without replacement
+  4. Random sampling with replacement is the bootstrap
+    + Underestimates of the error
+  5. If you cross-validate to pick predictors estimate you must estimate errors on independent data.

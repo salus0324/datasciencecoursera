@@ -1,0 +1,68 @@
+---
+title: "Module_3.2._Bagging.Rmd"
+author: "Katherine Shim"
+date: "December 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(caret)
+library(ElemStatLearn)
+```
+
+###Bootstrap aggregating (bagging)
+**Basic idea:**
+    1. Resample cases and recalculate predictions
+    2. Average or majority vote
+**Notes:**
+    1. Similar bias
+    2. Reduced variance
+    3. More useful for non-linear functions
+    
+###Example: Ozone data
+Each ith row of ll matrix is the prediction from the loess curve based on ith resampled data.
+```{r}
+data(ozne, package = "ElemStatLearn")
+ozone <- ozone[order(ozone$ozone),]
+ll <- matrix(NA, nrow=10, ncol=155)
+for (i in 1:10){
+  ss <- sample(1:dim(ozone)[1], replace=T)
+  ozone0 <- ozone[ss,]
+  ozone0 <- ozone0[order(ozone0$ozone),]
+  #loess function fit a smooth curve with given data
+  loess0 <- loess(temperature ~ ozone, data=ozone0, span=0.2)
+  ll[i,] <- predict(loess0, newdata=data.frame(ozone=1:155))
+  }
+```
+  
+###Bagged loess
+Then I will average the 10 predictions from 10 different loess curve based on 10 resampled dataset.
+```{r}
+#Plot the sample data
+plot(ozone$ozone, ozone$temperature, pch=19, cex=0.5)
+#Plot 10 loess curves
+for (i in 1:10) { lines(1:155, ll[i,], col="grey", lwd=2)}
+#Average the loess curve. apply funciton has 2 to average of each column over rows
+lines(1:155, apply(11,2,mean), col="red", lwd=2)
+```
+
+###Bagging in caret
+
+* Some models perform baggin for you , in `train` function consider `method` options
+    + `bagEarth`
+    + `treebag`
+    + `bagFDA`
+* Aternatively you can bag any model you choose using the `bag` function
+
+###More bagging in caret
+You can build your own bag model
+```{r}
+predictors <- data.frame(ozone=ozone$ozone)
+temperature = ozone$temperature
+treebag <- bag(predictors, temperature, B = 10,
+bagControl = bagControl(fit = ctreeBag$fit, predict = ctreeBag$pred, aggregate = ctreeBag$aggregate))
+plot(ozone$ozone, temperature, col='lightgrey', pch=19)
+points(ozone$ozone, predict(treebag$fit[[1]]$fit, predictors), pch=19, col="red")
+points(ozone$ozone, predict(treebag, predictors), pch=19, col="blue")
+```

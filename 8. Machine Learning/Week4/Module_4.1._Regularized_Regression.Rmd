@@ -1,0 +1,133 @@
+---
+title: "Regularized Regression"
+author: "Katherine Shim"
+date: "December 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(ElemStatLearn)
+```
+
+### Basic idea
+
+1. Fit a regression model
+2. Penalize (or shrink) large coefficients
+  
+**Pros:**
+
+* Can help with the bias/variance trade off. If there're two highly correlated variables, you might not want to include them both in the model as that will cause high variance. However your model can be a bit more biased. 
+* Can help with model selection
+
+**Cons:**
+  
+* May be computationally demanding on large data sets
+* Does not perform as well as random forests and boosting
+
+### A motivating example
+\[Y=\beta_0+\beta_1X_1+\beta_2X2+\epsilon\]
+where $X_1$ and $X_2$ are nearly perfectly correlated (co-linear). You can approximate this model by:
+\[Y=\beta_0+(\beta_1+\beta_2)X1+\epsilon\]
+The result is:
+
+* You will get a good estimate of $Y$
+* The estimate (of $Y$) will be biased
+* We may reduce variance in the estimate
+
+### Overfitting problem
+* As you include more predictors, the residuals of training set data (train error) goes down. However the residuals on testing set (test error) increases due to overfitting.
+* The training error will decrease as the model get more complicated. However test error goes down for a bit and shoots up as it overfits.
+
+### Solution 1: Model selection approach - split samples
+
+* No method better when data/computation time permits it
+* Approach
+    1. Divide data into training/test/validation
+    2. Treat validation as test data, train all competing models on the train data and pick the best one on validation
+    3. To appropriately assess performance on new data, apply to test set
+    4. You may re-split and re-perform steps 1-3.
+* Cons:
+    1. Limited data
+    2. Computationally complexity
+
+### Soluation 2: Decomposing Expected Prediction Error (EDE)
+Assume $Y_i = f(X_i) + \epsilon_i$,
+\[EPE(\lambda) = E\left[\{Y - \hat{f}_{\lambda}(X)\}^2\right]\]
+
+Suppose $\hat{f}_{\lambda}$ is the estimate from the training data and look at a new data point $X = x^*$
+\[E\left[\{Y - \hat{f}_{\lambda}(x^*)\}^2\right] = \sigma^2 + \{E[\hat{f}_{\lambda}(x^*)] - f(x^*)\}^2 + var[\hat{f}_\lambda(x_0)]\]
+Our goal is to reduce the overall quantity of equation obove.
+
+* The Irreducible error usually can not be reduced. This error comes from data collection.
+* However you can trade off bias and variance. This is where regularized regression comes in.
+
+### Another issue for high-dimensional data
+When there is small set of sample data. It's difficult to build a high-dimensional model. From the example below we can see the coefficient estimate on some predictor values are `NA` because there are only 5 samples available.
+```{r}
+data("prostate")
+small <- prostate[1:5,]
+lm(lpsa~., data=small)
+```
+
+### Solution 1: Hard thresholding
+
+* Model $Y=f(X)+\epsilon$
+* Set $\hat{f}_{\lambda}(x) = x'\beta$
+* Constrain only $\lambda$ coefficients to be nonzero. 
+* Selection problem is after chosing $\lambda$ figure out which $p - \lambda$ coefficients to make nonzero
+* Hence try all the combination of possible non-zero predictors and choose the best model.
+
+### Solution 2: Regularization for regression
+If the $\beta_j$'s are unconstrained:
+
+    * They can explode
+    * And hence are susceptible to very high variance
+
+To control variance, we might regularize/shrink the coefficients. $P(\lambda;\beta)$ is the penalty term.
+\[PRSS(\beta) = \sum_{j=1}^{n}(Y_j-\sum_{\beta_{1i}}^{m}\beta_{1i}X_{ij})^2+P(\lambda;\beta)\]
+where PRSS is a penalized form of the sum of squares. Things that are commonly looked for
+* Penalty reduces complexity
+* Penalty reduces variance
+* Penalty respects structure of the problem
+
+### Ridge regression - method 1 regularized regression
+Solve:
+
+\[ \sum_{i=1}^N \left(y_i - \beta_0 + \sum_{j=1}^p x_{ij}\beta_j \right)^2 + \lambda \sum_{j=1}^p \beta_j^2\]
+
+equivalent to solving
+
+$\sum_{i=1}^N \left(y_i - \beta_0 + \sum_{j=1}^p x_{ij}\beta_j \right)^2$ subject to $\sum_{j=1}^p \beta_j^2 \leq s$ where $s$ is inversely proportional to $\lambda$ 
+
+
+Inclusion of $\lambda$ makes the problem non-singular even if $X^TX$ is not invertible. This means that even when there are less number of samples than the number of predictors, the ridge regression model will still able to fit.
+
+### Tuning parameter $\lambda$
+
+* $\lambda$ controls the size of the coefficients
+* $\lambda$ controls the amount of regularization
+* As $\lambda \rightarrow 0$ we obtain the least square solution
+* As $\lambda \rightarrow \infty$ we have $\hat{\beta}_{\lambda=\infty}^{ridge} = 0$
+* Techniques like cross-validation can be used to pick the optimal tuning parameter.
+
+### Lasso - method 2 regularized regression
+
+$\sum_{i=1}^N \left(y_i - \beta_0 + \sum_{j=1}^p x_{ij}\beta_j \right)^2$ subject to $\sum_{j=1}^p |\beta_j| \leq s$ 
+
+also has a lagrangian form 
+
+$$ \sum_{i=1}^N \left(y_i - \beta_0 + \sum_{j=1}^p x_{ij}\beta_j \right)^2 + \lambda \sum_{j=1}^p |\beta_j|$$
+
+For orthonormal design matrices (not the norm!) this has a closed form solution. If $|\hat{\beta}_j^0| - \gamma <0$, then the coefficient will become zero, hence perform model selection. 
+
+$$\hat{\beta}_j = sign(\hat{\beta}_j^0)(|\hat{\beta}_j^0| - \gamma)^{+}$$
+ 
+but not in general.
+
+### Caret for regularized regression
+In `caret` methods are:
+
+* `ridge`
+* `lasso`
+* `relaxo`
