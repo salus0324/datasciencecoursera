@@ -13,7 +13,7 @@ library(qdap)
 library(plyr)
 library(dplyr)
 library(quanteda)
-setwd("C:/Users/kshim/Documents/Coursera/datasciencecoursera/10. Capstone/final")
+setwd("C:/Users/kshim/Documents/Coursera/datasciencecoursera/10. Capstone")
 ```
 ## Executive Summary
 The goal of this capstone project is to build a predictive model that can predict the most probable next word. The milestone project includes importing the data, sampling the data, and understanding the data through exploratory analysis. Three files (en_US.blog.txt, en_US.twitter.txt, and en_US.news.txt) were used to build the data.
