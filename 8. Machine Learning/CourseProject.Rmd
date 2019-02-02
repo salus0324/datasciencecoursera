@@ -42,7 +42,7 @@ First we will estimate the out of sample error by using `confusionMatrix` in `ca
 ```{r}
 confusionMatrix(training$classe, predict(modFit, training))
 ```
-According to the confusionMatrix, the in sample error of the model is less than 3%. The in sample error of the cross validated model is a good estimate of the out of sample error. Since in sample error rate is quite low, I believe that prediction on the test data will have high accuracy as well.
+According to the confusionMatrix, the in sample error of the model is .... The in sample error of the cross validated model is a good estimate of the out of sample error. Since in sample error rate is quite low, I believe that prediction on the test data will have high accuracy as well.
 
 
 ### Prediction on testing data
@@ -52,7 +52,6 @@ Prediction <- data.frame(predict(modFit, testing))
 names(Prediction) <- "Prediction"
 Prediction
 ```
-After taking the prediction quiz, I gained 100% accuracy as the result. This is very close result to the estimate of out of sample error, 
 
 
 

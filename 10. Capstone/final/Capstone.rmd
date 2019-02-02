@@ -1,0 +1,577 @@
+---
+title: "Capstone project - Milestone report"
+author: "Katherine Shim"
+date: "January 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, cache = TRUE)
+library(stringr)
+library(stats)
+library(qdap)
+library(plyr)
+library(dplyr)
+library(quanteda)
+setwd("C:/Users/kshim/Documents/Coursera/datasciencecoursera/10. Capstone/final")
+```
+## Executive Summary
+The goal of this capstone project is to build a predictive model that can predict the most probable next word. The milestone project includes importing the data, sampling the data, and understanding the data through exploratory analysis. Three files (en_US.blog.txt, en_US.twitter.txt, and en_US.news.txt) were used to build the data.
+
+## Data import and processing
+### File information
+Below is the information table of the text files.
+```{r info, echo=FALSE, message=FALSE, warning=FALSE}
+#File size in mb
+blogsize <- round(as.numeric(file.info("en_US.blogs.txt")$size)/1e6,0)
+twittersize <- round(as.numeric(file.info("en_US.twitter.txt")$size)/1e6,0)
+newssize <- round(as.numeric(file.info("en_US.news.txt")$size)/1e6,0)
+
+#Number of lines in each file
+con <- file("en_US.blogs.txt", "r") 
+blogline <- length(readLines(con))   
+close(con)
+
+con <- file("en_US.twitter.txt", "r")
+twitterline <- length(readLines(con))   
+close(con)
+
+con <- file("en_US.news.txt", "r")
+newsline <- length(readLines(con))   
+close(con)
+matrix(c(blogsize,twittersize, newssize, blogline, twitterline, newsline),ncol=3,byrow=TRUE, dimnames=list(c("File Size [Mb]","Number of lines"),c("en_US.blog","en_US.twitter","en_US.news")))
+```
+
+### Data sampling
+Since files are quite large, we will sample 10,000 lines from each file and save as separate file to reduce the burnden of memory usage.
+```{r sample, message=FALSE, warning=FALSE}
+set.seed(1234)
+con <- file("en_US.blogs.txt", "r") 
+blogsample <- readLines(con)[sample(1:blogline, 10000)]
+close(con)
+con <-file("blogs.data.txt", open = "wt")
+writeLines(blogsample, con)
+close(con)
+
+con <- file("en_US.twitter.txt", "r") 
+twittersample <- readLines(con)[sample(1:twitterline, 10000)]
+close(con)
+writeLines(twittersample, file("twitter.data.txt", open = "wt"))
+
+con <- file("en_US.news.txt", "r") 
+newssample <- readLines(con)[sample(1:newsline, 10000)]
+close(con)
+writeLines(newssample, file("news.data.txt", open = "wt"))
+```
+
+
+### Split data
+We will split the sampled files to train and test dataset. `write` function will will split them in to 80% and 20% ratio using baised `rbinom` function.
+```{r split, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(1234)
+write <- function(con, trainfile, testfile){
+  line <- readLines(con,1)
+  if (rbinom(1,1,0.8)) {
+      writeLines(line, trainfile)
+    }
+    else {
+      writeLines(line,testfile)
+    }
+}
+```
+
+```{r splitshow, message=FALSE, warning=FALSE}
+#Split en_US.blogs.txt into blogs.train.txt and blogs.test.txt
+con <- file("blogs.data.txt", "r") 
+blogTrain <- file("blogs.train.txt", open = "wt")
+blogTest <- file("blogs.test.txt", open = "wt")
+splitblog<-sapply(c(1:10000), function(x) write(con, blogTrain, blogTest))
+close(con)
+close(blogTrain)
+close(blogTest)
+
+#Split en_US.twitter.txt into twitter.train.txt, twitter.test.txt
+con <- file("twitter.data.txt", "r") 
+twitterTrain <- file("twitter.train.txt", open = "wt")
+twitterTest <- file("twitter.test.txt", open = "wt")
+splittwitter<-sapply(c(1:10000), function (x) write(con, twitterTrain, twitterTest))
+close(con)
+close(twitterTrain)
+close(twitterTest)
+
+#Split en_US.news.txt into news.train.txt and news.test.txt
+con <- file("news.data.txt", "r") 
+newsTrain <- file("news.train.txt", open = "wt")
+newsTest <- file("news.test.txt", open = "wt")
+splitnews <-sapply(c(1:10000), function (x) write(con, newsTrain, newsTest))
+close(con)
+close(newsTrain)
+close(newsTest)
+```
+
+## Clean the data
+Now we will clean and tokenize the sampled data. I wrote two functions 'clean_line' and 'clean_file' to clean and tokenize the input files.
+
+
+* `clean_line' will clean a single line of characters. It will remove any characters that are not letters, lowercase everything and get rid of extra spaces between words. Then it will tokenize the cleaned line and return a list of individual words. Finally it will remove any offensive words that we do not want to predict in the model.
+* 'clean_file' will use 'clean_line' function to clean and tokenize the entire file.
+
+```{r clean, echo=FALSE, message=FALSE, warning=FALSE}
+abv <- c(
+    "what's","what're","who's","who're","where's","where're","when's","when're","how's","how're","i'm",
+    "we're","you're","they're","it's","he's","she's","that's","there's","there're","i've","we've","you've",
+    "they've","who've","would've","not've","i'll","we'll","you'll","he'll","she'll","it'll","they'll",
+    "isn't","wasn't","aren't","weren't","can't","couldn't","don't","didn't","shouldn't","wouldn't","doesn't",
+    "haven't","hasn't","hadn't","won't","what's","what're","who's","who're","where's","where're","when's",
+    "when're","how's","how're","i'm","we're","you're","they're","it's","he's","she's","that's","there's",
+    "there're","i've","we've","you've","they've","who've","would've","not've","i'll","we'll","you'll",
+    "he'll","she'll","it'll","they'll","isn't","wasn't","aren't","weren't","can't","couldn't","don't", 
+    "didn't","shouldn't","wouldn't","doesn't","haven't","hasn't","hadn't","won't")
+
+repl <- c(
+    "what is","what are","who is","who are","where is","where are","when is","when are","how is","how are",
+    "i am","we are","you are","they are","it is","he is","she is","that is","there is","there are","i have",
+    "we have","you have","they have","who have","would have","not have","i will","we will","you will",  
+    "he will","she will","it will","they will","is not","was not","are not","were not","can not","could not",
+    "do not","did not","should not","would not","does not","have not","has not","had not","will not",
+    "what is","what are","who is","who are","where is","where are","when is","when are","how is","how are",
+    "i am","we are","you are","they are","it is","he is","she is","that is","there is","there are","i have",
+    "we have","you have","they have","who have","would have","not have","i will","we will","you will",
+    "he will","she will","it will","they will","is not","was not","are not","were not","can not","could not",
+    "do not","did not","should not","would not","does not","have not","has not","had not","will not")
+
+
+badwords <- read.csv("facebook_bad_words.txt", header=FALSE, stringsAsFactors = FALSE,sep=",", strip.white=TRUE)
+badwords <- as.list(c(badwords[1,]))
+
+clean_line <- function(line, file){
+    # Lowercase
+    out <- tolower(line)
+    #Replace abbreviation to full words
+    out <- replace_abbreviation(out, abv,repl)
+    # Remove everything that is not a number or letter
+    out <- str_replace_all(out,"[^a-zA-Z\\s0-9'\']", " ")
+    
+    # Shrink down to just one white space
+    out <- str_replace_all(out,"[\\s]+", " ")
+    # Split it
+    out <- tokens(out, what="word")[[1]]
+    out <- str_replace_all(out,"^'", " ")
+    out <- str_replace_all(out,"^'", " ")
+    # Get rid of trailing "" if necessary
+    indexes <- which(out == "")
+    if(length(indexes) > 0){
+      out <- out[-indexes]
+    }
+    writeLines(out[!(out %in% badwords)], file)
+}
+
+clean_file <- function(text, file){
+  # Remove null lines
+  text <- text[(text!="")]
+  Encoding(text) <- "UTF-8"
+  #Use clean_line function to clean and tokenize the entire file
+  returntext <- (sapply(1:length(text), function(x) clean_line(text[x], file)))
+  
+}
+```
+
+```{r tokenizewho, warning=FALSE, message=FALSE}
+#Tokenize blog train data
+con <- file("blogs.train.txt", "r")
+text <- readLines(con)
+close(con) 
+
+blogtokenized <- file("blogtokenized.txt", open = "wt")
+clean_file(text, blogtokenized)
+close(blogtokenized)
+
+#Tokenize twitter train data
+con <- file("twitter.train.txt", "r")
+text <- readLines(con)
+close(con) 
+
+
+twittertokenized <- file("twittertokenized.txt", open = "wt")
+clean_file(text, twittertokenized)
+close(twittertokenized)
+
+#Tokenize news train data
+con <- file("news.train.txt", "r")
+text <- readLines(con)
+close(con) 
+
+newstokenized <- file("newstokenized.txt", open = "wt")
+clean_file(text, newstokenized)
+close(newstokenized)
+```
+
+##Explatory Data Analysis
+Below is the summary of statistics of each training dataset. Based on the table we can see that the a sentence tends to have more words in a order of blog, news, and twitter.
+
+```{r wordcount, echo=FALSE, message=FALSE, warning=FALSE}
+#File size in kb
+blogsize <- round(as.numeric(file.info("blogs.train.txt")$size)/1e3,2)
+twittersize <- round(as.numeric(file.info("twitter.train.txt")$size)/1e3,2)
+newssize <- round(as.numeric(file.info("news.train.txt")$size)/1e3,2)
+#Number of lines
+con <- file("blogs.train.txt", "r")
+blogline <- length(readLines(con))
+close(con) 
+con <- file("twitter.train.txt", "r")
+twitterline <- length(readLines(con))
+close(con) 
+con <- file("news.train.txt", "r")
+newsline <- length(readLines(con))
+close(con) 
+
+#Word counts
+con <- file("blogtokenized.txt", "r")
+blogchar<- readLines(con)
+blogword <- length(blogchar)
+close(con) 
+
+con <- file("twittertokenized.txt", "r")
+twitterchar <- readLines(con)
+twitterword <- length(twitterchar)
+close(con) 
+
+con <- file("newstokenized.txt", "r")
+newschar <- readLines(con)
+newsword <- length(newschar)
+close(con) 
+matrix(round(c(blogsize,twittersize, newssize, blogline, twitterline, newsline,blogword,twitterword, newsword)),ncol=3,byrow=TRUE, dimnames=list(c("File Size [Kb]","Number of lines","Word Count"),c("en_US.blog","en_US.twitter","en_US.news")))
+```
+
+
+##Word Frequency
+Below is a exploratory analysis on word frequency and distribution for each file.
+
+* Unigram data: From the table and the barplots below we can observe that the most frequent word is "the" for all the files.
+```{r wordfreq, echo=FALSE, message=FALSE, warning=FALSE}
+blog <- tokens_ngrams(tokens(str_c(c(blogchar),collapse = " ")),n=1)[[1]]
+blogunique<- unique(blog)
+blogfreq <- count(blog)
+blogtopten<-head(blogfreq[order(-blogfreq$freq),] ,10)
+blogtopten<-blogtopten[order(blogtopten$freq),]
+row.names(blogtopten) <- 1:nrow(blogtopten)
+
+twitter <- tokens_ngrams(tokens(str_c(c(twitterchar),collapse = " ")),n=1)[[1]]
+twitterunique<- unique(twitter)
+twitterfreq <- count(twitter)
+twittertopten<-head(twitterfreq[order(-twitterfreq$freq),] ,10)
+twittertopten<-twittertopten[order(twittertopten$freq),]
+row.names(twittertopten) <- 1:nrow(twittertopten)
+
+
+news <- tokens_ngrams(tokens(str_c(c(newschar),collapse = " ")),n=1)[[1]]
+newsunique<- unique(news)
+newsfreq <- count(news)
+newstopten<-head(newsfreq[order(-newsfreq$freq),] ,10)
+newstopten<-newstopten[order(newstopten$freq),]
+row.names(newstopten) <- 1:nrow(newstopten)
+
+matrix(c(length(blogunique), length(twitterunique), length(newsunique)),ncol=3,byrow=TRUE, dimnames=list("Unique single word count",c("en_US.blog","en_US.twitter","en_US.news")))
+
+barplot(blogtopten$freq, main="Blog single word distribution", names.arg=blogtopten$x, xlab="Freq", horiz=TRUE, las=2)
+barplot(twittertopten$freq, main="Twitter single word distribution", names.arg=twittertopten$x, xlab="Freq", horiz=TRUE, las=2)
+barplot(newstopten$freq, main="News single word distribution", names.arg=newstopten$x, xlab="Freq", horiz=TRUE, las=2)
+```
+
+* Digram analysis: From the table and the barplots below we can observe that many of the frequent 2gram words are combination of "the" and prepositions.
+```{r digram, echo=FALSE, message=FALSE, warning=FALSE}
+blogdigram <- tokens_ngrams(tokens(str_c(c(blogchar),collapse = " ")),n=2)[[1]]
+blog2unique<- unique(blogdigram)
+blog2freq <- count(blogdigram)
+blog2topten<-head(blog2freq[order(-blog2freq$freq),] ,10)
+blog2topten<-blog2topten[order(blog2topten$freq),]
+row.names(blog2topten) <- 1:nrow(blog2topten)
+
+twitterdigram <- tokens_ngrams(tokens(str_c(c(twitterchar),collapse = " ")),n=2)[[1]]
+twitter2unique<- unique(twitterdigram)
+twitter2freq <- count(twitterdigram)
+twitter2topten<-head(twitter2freq[order(-twitter2freq$freq),] ,10)
+twitter2topten<-twitter2topten[order(twitter2topten$freq),]
+row.names(twitter2topten) <- 1:nrow(twitter2topten)
+
+newsdigram <- tokens_ngrams(tokens(str_c(c(newschar),collapse = " ")),n=2)[[1]]
+news2unique<- unique(newsdigram)
+news2freq <- count(newsdigram)
+news2topten<-head(news2freq[order(-news2freq$freq),] ,10)
+news2topten<-news2topten[order(news2topten$freq),]
+row.names(news2topten) <- 1:nrow(news2topten)
+
+matrix(c(length(blog2unique), length(twitter2unique), length(news2unique)),ncol=3,byrow=TRUE, dimnames=list("Unique 2-gram word count",c("en_US.blog","en_US.twitter","en_US.news")))
+
+barplot(blog2topten$freq, main="Blog Digram distribution",names.arg=blog2topten$x,xlab="Freq", horiz=TRUE,las=2)
+barplot(twitter2topten$freq, main="Twitter 2-gram distribution", names.arg=twitter2topten$x, xlab="Freq", horiz=TRUE,las=2)
+barplot(news2topten$freq, main="News 2-gram distribution", names.arg=news2topten$x, xlab="Freq", horiz=TRUE,las=2)
+```
+
+* Trigram word analysis
+From the table and plots below we can see that many of the frequent words are consisted of pronouns and verbs.
+```{r trigram, echo=FALSE, message=FALSE, warning=FALSE}
+blogtrigram <- tokens_ngrams(tokens(str_c(c(blogchar),collapse = " ")),n=3)[[1]]
+blog3unique<- unique(blogtrigram)
+blog3freq <- count(blogtrigram)
+blog3topten<-head(blog3freq[order(-blog3freq$freq),] ,10)
+blog3topten<-blog3topten[order(blog3topten$freq),]
+row.names(blog3topten) <- 1:nrow(blog3topten)
+
+twittertrigram <- tokens_ngrams(tokens(str_c(c(twitterchar),collapse = " ")),n=3)[[1]]
+twitter3unique<- unique(twittertrigram)
+twitter3freq <- count(twittertrigram)
+twitter3topten<-head(twitter3freq[order(-twitter3freq$freq),] ,10)
+twitter3topten<-twitter3topten[order(twitter3topten$freq),]
+row.names(twitter3topten) <- 1:nrow(twitter3topten)
+
+newstrigram <- tokens_ngrams(tokens(str_c(c(newschar),collapse = " ")),n=3)[[1]]
+news3unique<- unique(newstrigram)
+news3freq <- count(newstrigram)
+news3topten<-head(news3freq[order(-news3freq$freq),] ,10)
+news3topten<-news3topten[order(news3topten$freq),]
+row.names(news3topten) <- 1:nrow(news3topten)
+
+matrix(c(length(blog3unique), length(twitter3unique), length(news3unique)),ncol=3,byrow=TRUE, dimnames=list("Unique 3-gram word count",c("en_US.blog","en_US.twitter","en_US.news")))
+
+barplot(blog3topten$freq, main="Blog 3-gram distribution", names.arg=blog3topten$x, xlab="Freq", horiz=TRUE,las=2)
+barplot(twitter3topten$freq, main="Twitter 3-gram distribution", names.arg=twitter3topten$x, xlab="Freq", horiz=TRUE,las=2)
+barplot(news3topten$freq, main="News 3-gram distribution", names.arg=news3topten$x, xlab="Freq", horiz=TRUE,las=2)
+```
+
+##Predictive Modelling
+The input for predictive model won't include the source of the input text. Therefore for building the predictive model, we will use combined train data of blog, twitter, and news data.
+
+###n-gram model - using Maximum Likelihood Estimate
+Using the training set data, we will build a n-gram model. More concisely, an n-gram model predicts $x_i$ based on $ x_{i-(n-1)},...,x_{i-1}$. When used for language modeling, independence assumptions (Markov assumption) are made so that each word depends only on the last n ??? 1 words. In probability terms, this is $P(x_{i}\mid x_{i-(n-1)},...,x_{i-1})$. This probability is Maximum Likelihood Estimate. Simply we will count up the number of particular word or combination of words and divide by the total number of occurances. It is called as Maximum Likelihood Estimate (MLE) because this probability will be higher than real probability due to the unobserved events that are missing from corpus.  
+  
+In equations MLE can be written as below
+
+* Bigram: $P_{MLE}{w_i \min w_{i-1}} = \frac{count(w_{i-1}, w_i)}{count(w_i)}$
+* Trigram: $P_{MLE}{w_i \min w_{i-1}, w_{i-2}} = \frac{count(w_{i-2},w_{i-1}, w_i)}{count(w_{i-1},w_i)}$
+  
+Based on the quations I wrote a function `mle` which calculates the MLE probability with given $n$ and a text string.
+```{r ngram}
+mle <- function(n, text){
+  ###place holder for extract thing n texts
+  sliced <- strsplit(text, " +")[[1]]
+  ntext <- paste(sliced[(length(sliced)-(n-2)):length(sliced)], collapse="_")
+  ngram_1 <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=n)[[1]]
+  ngram_1 <- count(ngram_1)
+  count_i_1 <- ngram_1[grepl(paste0("^",ntext,"_"), ngram_1$x),]
+  count_i_1 <- count_i_1[order(-count_i_1$x),]
+  row.names(count_i_1) <- 1:nrow(count_i_1)
+  i <- sapply(count_i_1$x, FUN= function(y) paste(tail(strsplit(as.character(y), "_")[[1]],n-1), collapse = "_"))
+ 
+  ngram_2 <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=n-1)[[1]]
+  ngram_2 <- count(ngram_2)
+  count_i <- ngram_2[(ngram_2$x ==ntext),]
+  MLE <- cbind(as.data.frame(count_i_1),  count_i_1$freq/count_i$freq)
+  names(MLE) <- c("ngram", "freq","MLE")
+  MLE <- MLE[order(-MLE$MLE),]
+  row.names(MLE) <- 1:nrow(MLE)
+  return(head(MLE,10))
+}
+```
+
+As a demonstration I will pass "i love" text with n=2 toget bigram MLE using `mle` function above. From the result we can see that the most likely word to come after 'love' is 'you' as it has the highest MLE. 
+```{r ngramdemo}
+mle(2, "i love")
+```
+  
+However, this MLE logic wouldn't work if we try to predict the next word of unobserved n-gram. Therefore we need to reinforce the model by using Katz's back-off model.
+
+###Katz's back-off model
+Katz's back-off model estimates probabilities of unseen n-grams by redistributing some of the probability mass from observed n-gram to unobserved ones through discounting. For this model, we will do absolute discounting with value of 0.75.
+  
+Step 1. Save unigram, Bigram and trigram info
+The code below will create unigram, bigram, and trigram with frequencies.
+```{r ngrams}
+unigs <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=1)[[1]]
+unigs <- count(unigs)
+unigs <- unigs[order(-unigs$freq),]
+row.names(unigs) <- 1:nrow(unigs)
+bigrs <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=2)[[1]]
+bigrs <- count(bigrs)
+bigrs <- bigrs[order(-bigrs$freq),]
+row.names(bigrs) <- 1:nrow(bigrs)
+trigs <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=3)[[1]]
+trigs <- count(trigs)
+trigs <- trigs[order(-trigs$freq),]
+row.names(trigs) <- 1:nrow(trigs)
+head(unigs);head(bigrs);head(trigs)
+```
+
+Step 2: Probabilities of words completing observed trigram
+Now we will find the observed trigrams starting with given bigram prefix and calculates their probabilities. 
+```{r observed}
+gamma <- 0.75
+bigramPrefix <- "i_love"
+ObTrigrams <- function(bigramPrefix, trigrams){
+  output <- data.frame(ngrams=vector(mode='character', length=0), freq=vector(mode='integer', length=0))
+  trigram_index <- grep(paste0("^", bigramPrefix,"_"), trigs$x)
+  if(length(trigram_index)>0){
+    output <- trigrams[trigram_index,]
+  }
+  return(output)
+}
+
+
+ObservedTrigramProb <- function(ObservedTrigrams, bigrams, bigramPrefix, gamma){
+  if(nrow(ObservedTrigrams)<1) return(NULL)
+  obCount <- bigrams[(bigrams$x ==bigramPrefix),]$freq[1]
+  obTrigProbs <- (ObservedTrigrams$freq-gamma)/obCount
+  output <- cbind(as.data.frame(ObservedTrigrams$x), obTrigProbs)
+  colnames(output) <- c("ngram", "prob")
+  row.names(output) <- 1:nrow(output)
+  return(output)
+}
+observedTrigrams <- ObTrigrams(bigramPrefix, trigs)
+BO_obs_trigram_prob <- ObservedTrigramProb(observedTrigrams, bigrs, bigramPrefix, gamma)
+head(BO_obs_trigram_prob)
+```
+
+Step 3: Probabilities of words completing unobserved trigrams
+
+* Step 3.1: Get words that complete unobserved trigrams
+```{r unobstrigramlastwords}
+UnobsTrigamLast <- function(observedTrigrams, unigs){
+  observedlast <- sapply(observedTrigrams$x, FUN= function(y) paste(tail(strsplit(as.character(y), "_")[[1]],1)))
+  output <- unigs[!(unigs$x %in% observedlast),]$x
+  return(output)
+}
+unobs_trigram_last <- UnobsTrigamLast(observedTrigrams, unigs)
+```
+
+3.2. Calculate $\alpha(w_i-1)$
+\[\alpha(w_i-1)=1-\sum_{w\in A(w_{i-1})} \frac{c^*(w_{i-1}, w)}{c(w_{i-1})}\]
+```{r bigramalpha}
+alphabigram <- function(uni, bigrams, gamma=0.5){
+  bigramcount <- bigrams[grep(paste0("^",uni$x,"_"), bigrams$x),]
+  if (nrow(bigramcount)<1) return(0)
+  output <- 1- (sum(bigramcount$freq)-gamma)/uni$freq
+  return(output)
+}
+uni <- strsplit(bigramPrefix, "_")[[1]][2]
+uni <- unigs[unigs$x==uni,]
+
+alpha_bigram <- alphabigram(uni, bigrs, gamma)
+alpha_bigram
+```
+
+3.3. Backed off probabilities for bigrams
+The R code below will calculate $q_{BO}(w_i \mid w_{i-1})$ for observed and unobserved bigrams.
+
+* For observed bigrams, $q_{BO}(w_i \mid w_{i-1})=\frac{c^*(w_{i-1}, w)}{c(w_{i-1})}$
+* For unobserved bigrams, $q_{BO}(w_i \mid w_{i-1})=\alpha(w_{i-1}) \frac{c(w_i)}{\sum w \in {B(w_{i-1})} c(w_i)}$
+```{r BO_prob_bigram}
+BOBigrams <- function (bigramPrefix, unobs_trigram_last){
+  w_i_1 <- str_split(bigramPrefix, "_")[[1]][2]
+  output <- paste(w_i_1, unobs_trigram_last, sep="_")
+  return(output)
+}
+
+ObsBOBigrams <- function(bigramPrefix, unobs_trigram_last, bigrs){
+  boBigrams <- BOBigrams(bigramPrefix, unobs_trigram_last)
+  output <- bigrs[bigrs$x %in% boBigrams,]
+  return(output)
+}
+
+ObsBOBigProbs <- function(obsBOBigrams, unigs, gamma=0.5){
+  first <- sapply(obsBOBigrams$x, FUN= function(y) paste(head(strsplit(as.character(y), "_")[[1]],1)))
+  first_word_freq <- unigs[unigs$x %in% first_words, ]
+  return(head(first_word_freq))
+    }
+
+UnobsBOBigrams <- function(bigramPrefix, unobs_trigram_last, bigrs){
+  boBigrams <- BOBigrams(bigramPrefix, unobs_trigram_last)
+  output <- bigrs[!(bigrs$x %in% boBigrams),]
+  return(output)
+}
+ObsBOBigrams(bigramPrefix, unobs_trigram_last, bigrs)
+```
+
+
+* Katz's back-off model for observed n-gram
+This is very similary to what we did above to calculate MLE. This time we will discount the counts by 0.75.
+```{r observed}
+BO_observed <- function(n, text){
+  sliced <- strsplit(text, " +")[[1]]
+  ntext <- paste(sliced[(length(sliced)-(n-2)):length(sliced)], collapse="_")
+  ngram_1 <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=n)[[1]]
+  ngram_1 <- count(ngram_1)
+  count_i_1 <- ngram_1[grepl(paste0("^",ntext,"_"), ngram_1$x),]
+  count_i_1 <- count_i_1[order(-count_i_1$x),]
+  count_i_1$freq <- count_i_1$freq-0.75
+  row.names(count_i_1) <- 1:nrow(count_i_1)
+  ngram_2 <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=n-1)[[1]]
+  ngram_2 <- count(ngram_2)
+  count_i <- ngram_2[(ngram_2$x ==ntext),]
+  P_observed <- cbind(as.data.frame(count_i_1),  count_i_1$freq/count_i$freq)
+  names(P_observed) <- c("ngram", "freq","Prob")
+  P_observed <- P_observed[order(-P_observed$Prob),]
+  row.names(P_observed) <- 1:nrow(P_observed)
+  return(P_observed)
+  
+}
+BO_observed(2, "i love")
+```
+
+* Katz's back off model for unobserved n-gram. First we will get `calculate_alpha` function which will be the amount of discounted probability mass taken from observed n-gram. Then function `BO_unobserved' function will calculated probability for unobserved n-gram.
+```{r alpha}
+calculate_alpha <- function(n, text){
+  P_observed <- BO_observed(n, text)
+  alpha <- 1- sum(P_observed$Prob)
+  return(alpha)
+}
+
+BO_unobserved2 <- function(text){
+  alpha <- calculate_alpha(2, text)
+  sliced <- strsplit(text, " +")[[1]]
+  ntext <- sliced[length(sliced)]
+  bigram <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=2)[[1]]
+  bigram <- count(bigram)
+  count_i_1 <- bigram[(grepl(paste0("^",ntext,"_"), bigram$x)),]
+  count_i_1 <- count_i_1[order(-count_i_1$x),]
+  i <- sapply(count_i_1$x, FUN= function(y) paste(tail(strsplit(as.character(y), "_")[[1]],1)))
+  unigram <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=1)[[1]]
+  unigram <- count(unigram)
+  count_unob <- unigram[!(unigram$x %in% i),]
+  totalcount_unob <- sum(count_unob$freq)
+  P_unobserved2 <- cbind(count_unob, alpha*(count_unob$freq/totalcount_unob))
+  names(P_unobserved2) <- c("next_word", "freq","Prob")
+  P_unobserved2 <- P_unobserved2[order(-P_unobserved2$Prob),]
+  row.names(P_unobserved2) <- 1:nrow(P_unobserved2)
+  return(P_unobserved2)
+}
+
+BO_unobserved3 <- function(n, text){
+  alpha <- calculate_alpha(n, text)
+  sliced <- strsplit(text, " +")[[1]]
+  ntext <- paste(sliced[(length(sliced)-(n-2)):length(sliced)], collapse="_")
+  trigram <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=3)[[1]]
+  trigram <- count(trigram)
+  count_i_2 <- trigram[(grepl(paste0("^",ntext,"_"), trigram$x)),]
+  count_i_2 <- count_i_2[order(-count_i_2$x),]
+  i_ob <- sapply(count_i_2$x, FUN= function(y) paste(tail(strsplit(as.character(y), "_")[[1]],1)))
+  return(head(i_ob))
+  
+  
+  print(head)
+  bigram <- tokens_ngrams(tokens(str_c(c(blogchar,twitterchar,newschar),collapse = " ")),n=2)[[1]]
+  return(head(bigram,10))
+  bigram <- count(bigram)
+  count_unob <- bigram[!(bigram$x %in% i),]
+  totalcount_unob <- sum(count_unob$freq)
+  P_unobserved3 <- cbind(count_unob, alpha*(count_unob$freq/totalcount_unob))
+  names(P_unobserved2) <- c("next_word", "freq","Prob")
+  P_unobserved2 <- P_unobserved2[order(-P_unobserved2$Prob),]
+  row.names(P_unobserved2) <- 1:nrow(P_unobserved2)
+  return(P_unobserved2)
+    
+}
+BO_unobserved3(3, "wow i love")
+```
+
+
+

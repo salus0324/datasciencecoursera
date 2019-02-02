@@ -154,34 +154,34 @@ testing &lt;- testing[,c(keep_columns$name)]</code></pre>
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5523   37    9    8    3
-##          B  103 3621   71    2    0
-##          C    0   74 3312   30    6
-##          D    2   10   84 3113    7
-##          E    3   26   18   32 3528
+##          A 5521   43   10    5    1
+##          B   89 3628   77    3    0
+##          C    0   89 3298   29    6
+##          D    4   16   82 3103   11
+##          E    6   25   24   35 3517
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.9732          
-##                  95% CI : (0.9709, 0.9755)
-##     No Information Rate : 0.287           
-##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
-##                                           
-##                   Kappa : 0.9661          
-##  Mcnemar's Test P-Value : &lt; 2.2e-16       
+##                                          
+##                Accuracy : 0.9717         
+##                  95% CI : (0.9693, 0.974)
+##     No Information Rate : 0.2864         
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16      
+##                                          
+##                   Kappa : 0.9642         
+##  Mcnemar's Test P-Value : &lt; 2.2e-16      
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9808   0.9610   0.9479   0.9774   0.9955
-## Specificity            0.9959   0.9889   0.9932   0.9937   0.9951
-## Pos Pred Value         0.9898   0.9536   0.9679   0.9680   0.9781
-## Neg Pred Value         0.9923   0.9907   0.9888   0.9956   0.9990
-## Prevalence             0.2870   0.1920   0.1781   0.1623   0.1806
-## Detection Rate         0.2815   0.1845   0.1688   0.1586   0.1798
+## Sensitivity            0.9824   0.9545   0.9447   0.9773   0.9949
+## Specificity            0.9958   0.9893   0.9923   0.9931   0.9944
+## Pos Pred Value         0.9894   0.9555   0.9638   0.9649   0.9750
+## Neg Pred Value         0.9929   0.9891   0.9881   0.9956   0.9989
+## Prevalence             0.2864   0.1937   0.1779   0.1618   0.1802
+## Detection Rate         0.2814   0.1849   0.1681   0.1581   0.1792
 ## Detection Prevalence   0.2844   0.1935   0.1744   0.1639   0.1838
-## Balanced Accuracy      0.9884   0.9749   0.9705   0.9856   0.9953</code></pre>
-<p>According to the confusionMatrix, the in sample error of the model is …. The in sample error of the cross validated model is a good estimate of the out of sample error. Since in sample error rate is quite low, I believe that prediction on the test data will have high accuracy as well.</p>
+## Balanced Accuracy      0.9891   0.9719   0.9685   0.9852   0.9947</code></pre>
+<p>According to the confusionMatrix, the in sample error of the model is less than 3%. The in sample error of the cross validated model is a good estimate of the out of sample error. Since in sample error rate is quite low, I believe that prediction on the test data will have high accuracy as well.</p>
 </div>
 <div id="prediction-on-testing-data" class="section level3">
 <h3>Prediction on testing data</h3>
@@ -210,6 +210,7 @@ Prediction</code></pre>
 ## 18          B
 ## 19          B
 ## 20          B</code></pre>
+<p>After taking the prediction quiz, I gained 100% accuracy as the result. This is very close result to the estimate of out of sample error,</p>
 </div>
 </div>
 
